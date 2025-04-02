@@ -162,7 +162,7 @@ for (final app in usageData) {
 
 ## Example
 
-See the [example](https://github.com/yourusername/screen_time/tree/main/example) directory for a complete sample app demonstrating how to use this plugin.
+See the [example](https://github.com/chandrabezzo/screen_time/tree/main/example) directory for a complete sample app demonstrating how to use this plugin.
 
 ## Customization
 

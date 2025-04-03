@@ -3,7 +3,6 @@ class MethodName {
   static const requestPermission = 'requestPermission';
   static const appUsageData = 'appUsageData';
   static const monitoringAppUsage = 'monitoringAppUsage';
-  static const openAccessibilitySettings = 'openAccessibilitySettings';
-  static const isAppMonitoringServiceEnabled = 'isAppMonitoringServiceEnabled';
   static const configureAppMonitoringService = 'configureAppMonitoringService';
+  static const permissionStatus = 'permissionStatus';
 }

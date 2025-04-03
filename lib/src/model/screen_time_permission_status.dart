@@ -1,4 +1,4 @@
-enum PermissionStatus {
+enum ScreenTimePermissionStatus {
   approved,
   denied,
   notDetermined,

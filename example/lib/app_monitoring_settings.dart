@@ -13,7 +13,8 @@ class AppMonitoringSettingsScreen extends StatefulWidget {
 }
 
 class _AppMonitoringSettingsScreenState
-    extends State<AppMonitoringSettingsScreen> {
+    extends State<AppMonitoringSettingsScreen>
+    with WidgetsBindingObserver {
   final ScreenTime _screenTime = ScreenTime();
   bool _isServiceEnabled = false;
   UsageInterval _selectedInterval = UsageInterval.daily;
@@ -29,24 +30,37 @@ class _AppMonitoringSettingsScreenState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkServiceStatus();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.resumed) {
+      await _checkServiceStatus();
+    }
   }
 
   @override
   void dispose() {
     _stopMonitoring();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   Future<void> _checkServiceStatus() async {
-    final isEnabled = await _screenTime.isAppMonitoringServiceEnabled();
+    final result = await _screenTime.permissionStatus(
+      permissionType: ScreenTimePermissionType.accessibilitySettings,
+    );
     setState(() {
-      _isServiceEnabled = isEnabled;
+      _isServiceEnabled = result == ScreenTimePermissionStatus.approved;
     });
   }
 
   Future<void> _openAccessibilitySettings() async {
-    await _screenTime.openAccessibilitySettings();
+    await _screenTime.requestPermission(
+      permissionType: ScreenTimePermissionType.accessibilitySettings,
+    );
     // Wait a bit before checking status again
     await Future.delayed(const Duration(seconds: 3));
     await _checkServiceStatus();

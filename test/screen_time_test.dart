@@ -8,13 +8,6 @@ class MockScreenTimePlatform
     with MockPlatformInterfaceMixin
     implements ScreenTimePlatform {
   @override
-  Future<RequestPermissionModel> requestPermission({
-    UsageInterval interval = UsageInterval.daily,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
   Future<List<InstalledApp>> installedApps({
     bool ignoreSystemApps = true,
   }) {
@@ -39,11 +32,6 @@ class MockScreenTimePlatform
   }
 
   @override
-  Future<bool> isAppMonitoringServiceEnabled() {
-    throw UnimplementedError();
-  }
-
-  @override
   Future<MonitoringAppUsage> monitoringAppUsage({
     int startHour = 0,
     int startMinute = 0,
@@ -57,14 +45,24 @@ class MockScreenTimePlatform
   }
 
   @override
-  Future<bool> openAccessibilitySettings() {
+  Stream<Map<String, dynamic>> streamAppUsage(
+      {UsageInterval usageInterval = UsageInterval.daily,
+      int lookbackTimeMs = 10000}) {
     throw UnimplementedError();
   }
 
   @override
-  Stream<Map<String, dynamic>> streamAppUsage(
-      {UsageInterval usageInterval = UsageInterval.daily,
-      int lookbackTimeMs = 10000}) {
+  Future<ScreenTimePermissionStatus> permissionStatus(
+      {ScreenTimePermissionType permissionType =
+          ScreenTimePermissionType.appUsage}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> requestPermission(
+      {UsageInterval interval = UsageInterval.daily,
+      ScreenTimePermissionType permissionType =
+          ScreenTimePermissionType.appUsage}) {
     throw UnimplementedError();
   }
 }

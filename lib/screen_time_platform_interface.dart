@@ -1,10 +1,12 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:screen_time/src/model/screen_time_permission_status.dart';
 
 import 'screen_time_method_channel.dart';
 import 'src/model/app_usage.dart';
 import 'src/model/installed_app.dart';
 import 'src/model/monitoring_app_usage.dart';
 import 'src/model/request_permission_model.dart';
+import 'src/model/screen_time_permission_type.dart';
 import 'src/model/usage_interval.dart';
 
 abstract class ScreenTimePlatform extends PlatformInterface {
@@ -37,11 +39,21 @@ abstract class ScreenTimePlatform extends PlatformInterface {
   /// Returns a [RequestPermissionModel] with the following keys:
   /// - `status`: The current authorization status `true` is requested `false`: failed to request.
   /// - `error`: Error message if failed to request.
-  Future<RequestPermissionModel> requestPermission({
+  /// appUsage: Request permission to access app usage data.
+  /// accessibilitySettings: Opens the system accessibility settings screen. This allows users to enable the app monitoring service
+  ///
+  /// Returns `true` if the settings screen was opened successfully,
+  /// `false` otherwise
+  Future<bool> requestPermission({
     UsageInterval interval = UsageInterval.daily,
-  }) {
-    throw UnimplementedError('requestPermission() has not been implemented.');
-  }
+    ScreenTimePermissionType permissionType = ScreenTimePermissionType.appUsage,
+  }) =>
+      throw UnimplementedError('requestPermission() has not been implemented.');
+
+  Future<ScreenTimePermissionStatus> permissionStatus({
+    ScreenTimePermissionType permissionType = ScreenTimePermissionType.appUsage,
+  }) =>
+      throw UnimplementedError('permissionStatus() has not been implemented.');
 
   /// Fetch app usage data from the device.
   ///
@@ -82,24 +94,6 @@ abstract class ScreenTimePlatform extends PlatformInterface {
     List<String>? packagesName,
   }) {
     throw UnimplementedError('monitoringAppUsage() has not been implemented.');
-  }
-
-  /// Opens the system accessibility settings screen
-  /// This allows users to enable the app monitoring service
-  ///
-  /// Returns `true` if the settings screen was opened successfully,
-  /// `false` otherwise
-  Future<bool> openAccessibilitySettings() {
-    throw UnimplementedError(
-        'openAccessibilitySettings() has not been implemented.');
-  }
-
-  /// Checks if the app monitoring service is enabled
-  ///
-  /// Returns `true` if the service is enabled, `false` otherwise
-  Future<bool> isAppMonitoringServiceEnabled() {
-    throw UnimplementedError(
-        'isAppMonitoringServiceEnabled() has not been implemented.');
   }
 
   /// Configures the app monitoring service with the specified interval and lookback time

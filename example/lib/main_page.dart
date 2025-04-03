@@ -13,17 +13,35 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
   final _screenTime = ScreenTime();
   String _lastResult = '';
   bool _isLoading = false;
+  bool _appUsagePermission = false;
 
-  // @override
-  // void initState() {
-  //   super.initState();
+  @override
+  void initState() {
+    super.initState();
 
-  //   _executeMethod(_screenTime.scheduleBackgroundFetch);
-  // }
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.resumed) {
+      await checkPermission();
+    }
+  }
+
+  Future<void> checkPermission() async {
+    final isAppUsageGranted = await _screenTime.permissionStatus(
+      permissionType: ScreenTimePermissionType.appUsage,
+    );
+    setState(() {
+      _appUsagePermission =
+          (isAppUsageGranted == ScreenTimePermissionStatus.approved);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,36 +114,40 @@ class _MainPageState extends State<MainPage> {
                         'Request App Usage Permission',
                         () => _executeMethod(() async {
                           final result = await _screenTime.requestPermission();
-                          return jsonEncode({'status': result.status});
+                          await checkPermission();
+                          return jsonEncode({'status': result});
                         }),
                       ),
                       const SizedBox(height: 8),
-                      _buildMethodButton(
-                        'Fetch Installed Application',
-                        () async {
-                          showDialog(
-                            context: context,
-                            builder:
-                                (context) => const Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                          );
-
-                          final ctx = context;
-                          final apps = await _screenTime.installedApps();
-
-                          if (!ctx.mounted) return;
-                          Navigator.pop(ctx);
-
-                          Navigator.push(
-                            ctx,
-                            MaterialPageRoute(
+                      Visibility(
+                        visible: _appUsagePermission,
+                        child: _buildMethodButton(
+                          'Fetch Installed Application',
+                          () async {
+                            showDialog(
+                              context: context,
                               builder:
-                                  (context) =>
-                                      InstalledAppsPage(installedApps: apps),
-                            ),
-                          );
-                        },
+                                  (context) => const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                            );
+
+                            final ctx = context;
+                            final apps = await _screenTime.installedApps();
+
+                            if (!ctx.mounted) return;
+                            Navigator.pop(ctx);
+
+                            Navigator.push(
+                              ctx,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        InstalledAppsPage(installedApps: apps),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -179,5 +201,11 @@ class _MainPageState extends State<MainPage> {
         child: Text(label),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 }

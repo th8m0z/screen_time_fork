@@ -1,20 +1,22 @@
-import 'package:screen_time/src/model/request_permission_model.dart';
+import 'package:screen_time/src/model/screen_time_permission_status.dart';
 
 import 'screen_time_platform_interface.dart';
 import 'src/model/app_usage.dart';
 import 'src/model/installed_app.dart';
 import 'src/model/monitoring_app_usage.dart';
+import 'src/model/screen_time_permission_type.dart';
 import 'src/model/usage_interval.dart';
 
 export 'src/const/method_name.dart';
 export 'src/const/argument.dart';
-export 'src/model/permission_status.dart';
+export 'src/model/screen_time_permission_status.dart';
 export 'src/model/installed_app.dart';
 export 'src/model/app_category.dart';
 export 'src/model/app_usage.dart';
 export 'src/model/monitoring_app_usage.dart';
 export 'src/model/request_permission_model.dart';
 export 'src/model/usage_interval.dart';
+export 'src/model/screen_time_permission_type.dart';
 
 class ScreenTime {
   Future<List<InstalledApp>> installedApps({
@@ -30,14 +32,22 @@ class ScreenTime {
   /// Parameters:
   /// - `interval`: The interval to use for usage stats queries (DAILY, WEEKLY, MONTHLY, YEARLY, BEST)
   ///
-  /// Returns a [RequestPermissionModel] with the following keys:
-  /// - `status`: The current authorization status `true` is requested `false`: failed to request.
-  /// - `error`: Error message if failed to request.
-  Future<RequestPermissionModel> requestPermission({
+  /// Returns a [bool] with the following keys:
+  /// - `true`: Request Permission launched
+  /// - `false`: Request Permission failed to launch
+  Future<bool> requestPermission({
     UsageInterval interval = UsageInterval.daily,
+    ScreenTimePermissionType permissionType = ScreenTimePermissionType.appUsage,
   }) async {
     return await ScreenTimePlatform.instance
-        .requestPermission(interval: interval);
+        .requestPermission(interval: interval, permissionType: permissionType);
+  }
+
+  Future<ScreenTimePermissionStatus> permissionStatus({
+    ScreenTimePermissionType permissionType = ScreenTimePermissionType.appUsage,
+  }) async {
+    return await ScreenTimePlatform.instance
+        .permissionStatus(permissionType: permissionType);
   }
 
   /// Fetch app usage data from the device.
@@ -112,22 +122,6 @@ class ScreenTime {
       usageInterval: usageInterval,
       lookbackTimeMs: lookbackTimeMs,
     );
-  }
-
-  /// Opens the system accessibility settings screen
-  /// This allows users to enable the app monitoring service
-  ///
-  /// Returns `true` if the settings screen was opened successfully,
-  /// `false` otherwise
-  Future<bool> openAccessibilitySettings() {
-    return ScreenTimePlatform.instance.openAccessibilitySettings();
-  }
-
-  /// Checks if the app monitoring service is enabled
-  ///
-  /// Returns `true` if the service is enabled, `false` otherwise
-  Future<bool> isAppMonitoringServiceEnabled() {
-    return ScreenTimePlatform.instance.isAppMonitoringServiceEnabled();
   }
 
   /// Configures the app monitoring service with the specified interval and lookback time

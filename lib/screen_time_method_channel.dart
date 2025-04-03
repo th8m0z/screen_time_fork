@@ -4,13 +4,14 @@ import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:screen_time/src/model/monitoring_app_usage.dart';
-import 'package:screen_time/src/model/request_permission_model.dart';
+import 'package:screen_time/src/model/screen_time_permission_status.dart';
 
 import 'screen_time_platform_interface.dart';
 import 'src/const/argument.dart';
 import 'src/const/method_name.dart';
 import 'src/model/app_usage.dart';
 import 'src/model/installed_app.dart';
+import 'src/model/screen_time_permission_type.dart';
 import 'src/model/usage_interval.dart';
 
 /// An implementation of [ScreenTimePlatform] that uses method channels.
@@ -45,15 +46,28 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
   }
 
   @override
-  Future<RequestPermissionModel> requestPermission({
+  Future<bool> requestPermission({
     UsageInterval interval = UsageInterval.daily,
+    ScreenTimePermissionType permissionType = ScreenTimePermissionType.appUsage,
   }) async {
-    final result = await methodChannel
-        .invokeMethod<Map<Object?, Object?>>(MethodName.requestPermission, {
-      Argument.interval: interval.name,
-    });
-    final data = await _convertToStringDynamicMap(result);
-    return RequestPermissionModel.fromJson(data);
+    return await methodChannel
+            .invokeMethod<bool>(MethodName.requestPermission, {
+          Argument.interval: interval.name,
+          Argument.permissionType: permissionType.name,
+        }) ??
+        false;
+  }
+
+  @override
+  Future<ScreenTimePermissionStatus> permissionStatus({
+    ScreenTimePermissionType permissionType = ScreenTimePermissionType.appUsage,
+  }) async {
+    final result =
+        await methodChannel.invokeMethod<String>(MethodName.permissionStatus, {
+              Argument.permissionType: permissionType.name,
+            }) ??
+            ScreenTimePermissionStatus.notDetermined.name;
+    return ScreenTimePermissionStatus.values.byName(result);
   }
 
   @override
@@ -117,20 +131,6 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
     final map = await _convertToStringDynamicMap(result);
     final response = BaseMonitoringAppUsage.fromJson(map);
     return response.data;
-  }
-
-  @override
-  Future<bool> openAccessibilitySettings() async {
-    final result = await methodChannel
-        .invokeMethod<bool>(MethodName.openAccessibilitySettings);
-    return result ?? false;
-  }
-
-  @override
-  Future<bool> isAppMonitoringServiceEnabled() async {
-    final result = await methodChannel
-        .invokeMethod<bool>(MethodName.isAppMonitoringServiceEnabled);
-    return result ?? false;
   }
 
   @override

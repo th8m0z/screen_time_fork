@@ -1,0 +1,1 @@
+enum ScreenTimePermissionType { appUsage, accessibilitySettings }

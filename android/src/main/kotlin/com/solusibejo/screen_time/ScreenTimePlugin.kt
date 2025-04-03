@@ -4,8 +4,11 @@ import android.content.Context
 import com.solusibejo.screen_time.const.Argument
 import com.solusibejo.screen_time.const.Field
 import com.solusibejo.screen_time.const.MethodName
+import com.solusibejo.screen_time.const.ScreenTimePermissionType
 import com.solusibejo.screen_time.const.UsageInterval
 import com.solusibejo.screen_time.service.AppMonitoringService
+import com.solusibejo.screen_time.util.EnumExtension.toCamelCase
+import com.solusibejo.screen_time.util.EnumExtension.toEnumFormat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -56,10 +59,28 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
       MethodName.requestPermission -> {
         val args = call.arguments as Map<String, Any?>
         val usageInterval = args[Argument.interval] as String
+        val permissionType = args[Argument.permissionType] as String
 
         val response = ScreenTimeMethod.requestPermission(context,
-          UsageInterval.valueOf(usageInterval.uppercase(Locale.getDefault())))
-        result.success(response)
+          UsageInterval.valueOf(usageInterval.uppercase(Locale.getDefault())),
+          ScreenTimePermissionType.valueOf(permissionType.toEnumFormat()),
+        )
+        if(response){
+          result.success(true)
+        }
+        else {
+          result.success(false)
+        }
+      }
+      MethodName.permissionStatus -> {
+        val args = call.arguments as Map<String, Any?>
+        val permissionType = args[Argument.permissionType] as String
+
+        val response = ScreenTimeMethod.permissionStatus(context,
+          ScreenTimePermissionType.valueOf(permissionType.toEnumFormat())
+        )
+
+        result.success(response.name.toCamelCase())
       }
       MethodName.appUsageData -> {
         val args = call.arguments as Map<String, Any?>
@@ -114,14 +135,6 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
           val error = data[Field.error]
           result.error("500", "Failed to start monitoring app usage", error)
         }
-      }
-      MethodName.openAccessibilitySettings -> {
-        val data = ScreenTimeMethod.openAccessibilitySettings(context)
-        result.success(data)
-      }
-      MethodName.isAppMonitoringServiceEnabled -> {
-        val isEnabled = ScreenTimeMethod.isAppMonitoringServiceEnabled(context)
-        result.success(isEnabled)
       }
       MethodName.configureAppMonitoringService -> {
         val args = call.arguments as Map<String, Any?>

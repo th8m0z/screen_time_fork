@@ -1,5 +1,6 @@
 package com.solusibejo.screen_time
 
+import android.app.AppOpsManager
 import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
@@ -18,6 +19,8 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.solusibejo.screen_time.const.Argument
 import com.solusibejo.screen_time.const.Field
+import com.solusibejo.screen_time.const.ScreenTimePermissionStatus
+import com.solusibejo.screen_time.const.ScreenTimePermissionType
 import com.solusibejo.screen_time.const.UsageInterval
 import com.solusibejo.screen_time.service.AppMonitoringService
 import com.solusibejo.screen_time.util.UsageStatsWorker
@@ -176,28 +179,80 @@ object ScreenTimeMethod {
      */
     fun requestPermission(
         context: Context,
-        interval: UsageInterval = UsageInterval.DAILY
-    ): Map<String, Any> {
-        if(!checkIfStatsAreAvailable(context, interval)){
-            try {
-                val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                context.startActivity(intent)
+        interval: UsageInterval = UsageInterval.DAILY,
+        type: ScreenTimePermissionType = ScreenTimePermissionType.APP_USAGE,
+    ): Boolean {
+        if(type == ScreenTimePermissionType.APP_USAGE){
+            if(!checkIfStatsAreAvailable(context, interval)){
+                try {
+                    val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    context.startActivity(intent)
 
-                return mutableMapOf(
-                    Field.status to true
-                )
-            } catch (exception: Exception){
-                return mutableMapOf(
-                    Field.status to false,
-                    Field.error to exception.localizedMessage,
-                )
+                    return true
+                } catch (exception: Exception){
+                    exception.localizedMessage?.let { Log.e("requestPermission appUsage", it) }
+                    return false
+                }
+            }
+            else {
+                return false
             }
         }
         else {
-            return mutableMapOf(
-                Field.status to true
-            )
+            try {
+                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                context.startActivity(intent)
+                return true
+            } catch (e: Exception) {
+                return false
+            }
+        }
+    }
+
+    fun permissionStatus(
+        context: Context,
+        type: ScreenTimePermissionType = ScreenTimePermissionType.APP_USAGE
+    ): ScreenTimePermissionStatus {
+        if(type == ScreenTimePermissionType.APP_USAGE){
+            val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+            val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                appOps.unsafeCheckOpNoThrow(
+                    AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    android.os.Process.myUid(),
+                    context.packageName
+                )
+            } else {
+                appOps.checkOpNoThrow(
+                    AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    android.os.Process.myUid(),
+                    context.packageName
+                )
+            }
+
+            return when(mode){
+                AppOpsManager.MODE_ALLOWED -> {
+                    ScreenTimePermissionStatus.APPROVED
+                }
+
+                AppOpsManager.MODE_IGNORED -> {
+                    ScreenTimePermissionStatus.DENIED
+                }
+
+                else -> {
+                    ScreenTimePermissionStatus.NOT_DETERMINED
+                }
+            }
+        }
+        else {
+            val result = AppMonitoringService.isServiceRunning(context)
+            if(result){
+                return ScreenTimePermissionStatus.APPROVED
+            }
+            else {
+                return ScreenTimePermissionStatus.DENIED
+            }
         }
     }
 
@@ -361,34 +416,6 @@ object ScreenTimeMethod {
                 Field.error to exception.localizedMessage,
             )
         }
-    }
-    
-    /**
-     * Opens the system accessibility settings screen.
-     * This allows users to enable the app monitoring service.
-     *
-     * @param context The application context
-     * @return Boolean indicating if the settings screen was opened successfully
-     */
-    fun openAccessibilitySettings(context: Context): Boolean {
-        try {
-            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            context.startActivity(intent)
-            return true
-        } catch (e: Exception) {
-            return false
-        }
-    }
-    
-    /**
-     * Checks if the app monitoring accessibility service is enabled.
-     *
-     * @param context The application context
-     * @return Boolean indicating if the service is currently enabled
-     */
-    fun isAppMonitoringServiceEnabled(context: Context): Boolean {
-        return AppMonitoringService.isServiceRunning(context)
     }
     
     /**

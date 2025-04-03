@@ -1,3 +1,7 @@
+## 0.4.0 - April 3, 2025
+* Centralized Request Permission
+* Centralized Permission Status
+
 ## 0.3.0 - April 3, 2025
 * Android, Filter installed by user only
 * App Usage, retrieve based on specific package name

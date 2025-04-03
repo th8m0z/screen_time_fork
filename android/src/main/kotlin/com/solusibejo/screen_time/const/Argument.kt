@@ -4,6 +4,7 @@ object Argument {
     const val startTimeInMillisecond = "startTimeInMillisecond"
     const val endTimeInMillisecond = "endTimeInMillisecond"
     const val interval = "interval"
+    const val permissionType = "permissionType"
     const val lookbackTimeMs = "lookbackTimeMs"
     const val ignoreSystemApps = "ignoreSystemApps"
     const val packagesName = "packagesName"

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:screen_time/screen_time.dart';
 
 class AppMonitoringSettingsScreen extends StatefulWidget {
-  const AppMonitoringSettingsScreen({super.key});
+  const AppMonitoringSettingsScreen({super.key, this.packagesName});
+
+  final List<String>? packagesName;
 
   @override
   State<AppMonitoringSettingsScreen> createState() =>
@@ -87,6 +89,7 @@ class _AppMonitoringSettingsScreenState
         endMinute: 59,
         usageInterval: _selectedInterval,
         lookbackTimeMs: _lookbackTime * 1000,
+        packagesName: widget.packagesName,
       );
 
       // Update UI with initial data

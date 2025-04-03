@@ -32,6 +32,7 @@ class BaseInstalledApp {
 
 class InstalledApp {
   final String? appName;
+  final String? packageName;
   final bool enabled;
   final AppCategory category;
   final String? versionName;
@@ -40,6 +41,7 @@ class InstalledApp {
 
   InstalledApp({
     this.appName,
+    this.packageName,
     this.enabled = false,
     this.category = AppCategory.undefined,
     this.versionName,
@@ -49,6 +51,7 @@ class InstalledApp {
 
   factory InstalledApp.fromJson(Map<String, dynamic> json) => InstalledApp(
         appName: json["appName"],
+        packageName: json["packageName"],
         enabled: json["enabled"],
         category: AppCategory.values.firstWhere(
           (element) => element.name == json["category"],
@@ -63,8 +66,9 @@ class InstalledApp {
 
   Map<String, dynamic> toJson() => {
         "appName": appName,
+        "packageName": packageName,
         "enabled": enabled,
-        "category": category,
+        "category": category.name,
         "versionName": versionName,
         "versionCode": versionCode,
         "appIcon": iconInBytes,

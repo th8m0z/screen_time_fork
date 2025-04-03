@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:screen_time/screen_time.dart';
 
+import 'app_monitoring_settings.dart';
+import 'app_usage_page.dart';
+
 class InstalledAppsPage extends StatefulWidget {
   const InstalledAppsPage({super.key, required this.installedApps});
 
@@ -13,6 +16,7 @@ class InstalledAppsPage extends StatefulWidget {
 class _InstalledAppsPageState extends State<InstalledAppsPage>
     with TickerProviderStateMixin {
   late TabController _tabController;
+  final _screenTime = ScreenTime();
 
   @override
   void initState() {
@@ -35,6 +39,46 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
           controller: _tabController,
           tabs: const [Tab(text: 'All Apps'), Tab(text: 'By Category')],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () async {
+              final ctx = context;
+              final packagesName =
+                  widget.installedApps
+                      .map((app) => app.packageName ?? '')
+                      .toList();
+              final result = await _screenTime.appUsageData(
+                packagesName: packagesName,
+              );
+
+              if (!ctx.mounted) return;
+              Navigator.push(
+                ctx,
+                MaterialPageRoute(
+                  builder: (context) => AppUsagePage(apps: result),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.monitor),
+            onPressed: () async {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => AppMonitoringSettingsScreen(
+                        packagesName:
+                            widget.installedApps
+                                .map((app) => app.packageName ?? '')
+                                .toList(),
+                      ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: TabBarView(
         controller: _tabController,
@@ -52,7 +96,8 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
           leading:
               app.iconInBytes != null ? Image.memory(app.iconInBytes!) : null,
           title: Text(app.appName ?? "Unknown"),
-          subtitle: Text(app.category.name),
+          subtitle: Text(app.packageName ?? "-"),
+          trailing: Text(app.category.name),
         );
       },
     );
@@ -91,6 +136,7 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                               ? Image.memory(app.iconInBytes!)
                               : const Icon(Icons.android),
                       title: Text(app.appName ?? "Unknown"),
+                      subtitle: Text(app.packageName ?? "-"),
                     ),
                   )
                   .toList(),

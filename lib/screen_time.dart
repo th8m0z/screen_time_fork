@@ -17,8 +17,12 @@ export 'src/model/request_permission_model.dart';
 export 'src/model/usage_interval.dart';
 
 class ScreenTime {
-  Future<List<InstalledApp>> installedApps() {
-    return ScreenTimePlatform.instance.installedApps();
+  Future<List<InstalledApp>> installedApps({
+    bool ignoreSystemApps = true,
+  }) {
+    return ScreenTimePlatform.instance.installedApps(
+      ignoreSystemApps: ignoreSystemApps,
+    );
   }
 
   /// Request Screen Time permission from the user.
@@ -46,11 +50,13 @@ class ScreenTime {
     DateTime? startTime,
     DateTime? endTime,
     UsageInterval usageInterval = UsageInterval.daily,
+    List<String>? packagesName,
   }) {
     return ScreenTimePlatform.instance.appUsageData(
       startTime: startTime,
       endTime: endTime,
       usageInterval: usageInterval,
+      packagesName: packagesName,
     );
   }
 
@@ -75,6 +81,7 @@ class ScreenTime {
     required int endMinute,
     UsageInterval usageInterval = UsageInterval.daily,
     int lookbackTimeMs = 10000, // Default: 10 seconds
+    List<String>? packagesName,
   }) {
     return ScreenTimePlatform.instance.monitoringAppUsage(
       startHour: startHour,
@@ -83,6 +90,7 @@ class ScreenTime {
       endMinute: endMinute,
       usageInterval: usageInterval,
       lookbackTimeMs: lookbackTimeMs,
+      packagesName: packagesName,
     );
   }
 

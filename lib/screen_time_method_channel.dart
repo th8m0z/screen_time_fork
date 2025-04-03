@@ -18,15 +18,19 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
   /// The method channel used to interact with the native platform.
   @visibleForTesting
   final methodChannel = const MethodChannel('screen_time');
-  
+
   /// The event channel used for streaming app usage data
   @visibleForTesting
   final eventChannel = const EventChannel('screen_time/app_usage_stream');
 
   @override
-  Future<List<InstalledApp>> installedApps() async {
+  Future<List<InstalledApp>> installedApps({
+    bool ignoreSystemApps = true,
+  }) async {
     final result = await methodChannel
-        .invokeMethod<Map<Object?, Object?>>(MethodName.installedApps);
+        .invokeMethod<Map<Object?, Object?>>(MethodName.installedApps, {
+      Argument.ignoreSystemApps: ignoreSystemApps,
+    });
 
     return await Isolate.run(() async {
       final map = await _convertToStringDynamicMap(result);
@@ -57,6 +61,7 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
     DateTime? startTime,
     DateTime? endTime,
     UsageInterval usageInterval = UsageInterval.daily,
+    List<String>? packagesName,
   }) async {
     final arguments = <Object?, Object?>{};
     if (startTime != null) {
@@ -65,6 +70,10 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
     }
     if (endTime != null) {
       arguments[Argument.endTimeInMillisecond] = endTime.millisecondsSinceEpoch;
+    }
+
+    if (packagesName != null) {
+      arguments[Argument.packagesName] = packagesName;
     }
 
     final result = await methodChannel.invokeMethod<Map<Object?, Object?>>(
@@ -90,18 +99,21 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
     int endMinute = 59,
     UsageInterval usageInterval = UsageInterval.daily,
     int lookbackTimeMs = 10000, // Default: 10 seconds
+    List<String>? packagesName,
   }) async {
+    final arguments = <Object?, Object?>{
+      Argument.startHour: startHour,
+      Argument.startMinute: startMinute,
+      Argument.endHour: endHour,
+      Argument.endMinute: endMinute,
+      Argument.lookbackTimeMs: lookbackTimeMs,
+      Argument.interval: usageInterval.name,
+    };
+    if (packagesName != null) {
+      arguments[Argument.packagesName] = packagesName;
+    }
     final result = await methodChannel.invokeMethod<Map<Object?, Object?>>(
-      MethodName.monitoringAppUsage,
-      {
-        Argument.startHour: startHour,
-        Argument.startMinute: startMinute,
-        Argument.endHour: endHour,
-        Argument.endMinute: endMinute,
-        Argument.lookbackTimeMs: lookbackTimeMs,
-        Argument.interval: usageInterval.name,
-      },
-    );
+        MethodName.monitoringAppUsage, arguments);
     final map = await _convertToStringDynamicMap(result);
     final response = BaseMonitoringAppUsage.fromJson(map);
     return response.data;
@@ -135,7 +147,7 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
     );
     return result ?? false;
   }
-  
+
   @override
   Stream<Map<String, dynamic>> streamAppUsage({
     UsageInterval usageInterval = UsageInterval.daily,
@@ -146,24 +158,22 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
       interval: usageInterval,
       lookbackTimeMs: lookbackTimeMs,
     );
-    
+
     // Return the stream from the event channel
-    return eventChannel
-        .receiveBroadcastStream({
-          Argument.interval: usageInterval.name,
-          Argument.lookbackTimeMs: lookbackTimeMs,
-        })
-        .map((dynamic event) {
-          // Convert the event data to the expected type
-          if (event is Map) {
-            return _convertNestedMap(event);
-          } else {
-            throw PlatformException(
-              code: 'INVALID_EVENT',
-              message: 'Invalid event format received from native platform',
-            );
-          }
-        });
+    return eventChannel.receiveBroadcastStream({
+      Argument.interval: usageInterval.name,
+      Argument.lookbackTimeMs: lookbackTimeMs,
+    }).map((dynamic event) {
+      // Convert the event data to the expected type
+      if (event is Map) {
+        return _convertNestedMap(event);
+      } else {
+        throw PlatformException(
+          code: 'INVALID_EVENT',
+          message: 'Invalid event format received from native platform',
+        );
+      }
+    });
   }
 
   /// Helper method to convert the result from native code to the expected Dart type

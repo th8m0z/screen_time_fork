@@ -43,8 +43,11 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
   override fun onMethodCall(call: MethodCall, result: Result) {
     when(call.method){
       MethodName.installedApps -> {
+        val args = call.arguments as Map<String, Any?>
+        val ignoreSystemApps = args[Argument.ignoreSystemApps] as Boolean? ?: true
+
         CoroutineScope(Dispatchers.IO).launch {
-          val installedApps = ScreenTimeMethod.installedApps(context)
+          val installedApps = ScreenTimeMethod.installedApps(context, ignoreSystemApps)
           withContext(Dispatchers.Main){
             result.success(installedApps)
           }
@@ -64,12 +67,14 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
         val endTimeInMillisecond = args[Argument.endTimeInMillisecond] as Int?
         val usageInterval = args[Argument.interval] as String?
             ?: UsageInterval.DAILY.name.lowercase()
+        val packagesName = args[Argument.packagesName] as List<*>?
 
         val data = ScreenTimeMethod.appUsageData(
           context,
           startTimeInMillisecond?.toLong(),
           endTimeInMillisecond?.toLong(),
-          UsageInterval.valueOf(usageInterval.uppercase(Locale.getDefault()))
+          UsageInterval.valueOf(usageInterval.uppercase(Locale.getDefault())),
+          packagesName?.filterIsInstance<String>(),
         )
         val status = data[Field.status]
         if(status == true){
@@ -88,6 +93,7 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
         val endMinute = args[Argument.endMinute] as Int
         val usageInterval = args[Argument.interval] as String
         val lookbackTimeMs = args[Argument.lookbackTimeMs] as Int
+        val packagesName = args[Argument.packagesName] as List<*>?
 
         val data = ScreenTimeMethod.monitoringAppUsage(
           context,
@@ -97,6 +103,7 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
           endMinute,
           UsageInterval.valueOf(usageInterval.uppercase(Locale.getDefault())),
           lookbackTimeMs.toLong(),
+          packagesName?.filterIsInstance<String>(),
         )
 
         val status = data[Field.status]

@@ -28,7 +28,9 @@ abstract class ScreenTimePlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<List<InstalledApp>> installedApps() {
+  Future<List<InstalledApp>> installedApps({
+    bool ignoreSystemApps = true,
+  }) {
     throw UnimplementedError('installedApps() has not been implemented.');
   }
 
@@ -51,6 +53,7 @@ abstract class ScreenTimePlatform extends PlatformInterface {
     DateTime? startTime,
     DateTime? endTime,
     UsageInterval usageInterval = UsageInterval.daily,
+    List<String>? packagesName,
   }) {
     throw UnimplementedError('appUsageData() has not been implemented.');
   }
@@ -76,6 +79,7 @@ abstract class ScreenTimePlatform extends PlatformInterface {
     int endMinute = 59,
     UsageInterval usageInterval = UsageInterval.daily,
     int lookbackTimeMs = 10000,
+    List<String>? packagesName,
   }) {
     throw UnimplementedError('monitoringAppUsage() has not been implemented.');
   }

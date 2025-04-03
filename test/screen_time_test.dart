@@ -15,15 +15,19 @@ class MockScreenTimePlatform
   }
 
   @override
-  Future<List<InstalledApp>> installedApps() {
+  Future<List<InstalledApp>> installedApps({
+    bool ignoreSystemApps = true,
+  }) {
     throw UnimplementedError();
   }
 
   @override
-  Future<List<AppUsage>> appUsageData(
-      {DateTime? startTime,
-      DateTime? endTime,
-      UsageInterval usageInterval = UsageInterval.daily}) {
+  Future<List<AppUsage>> appUsageData({
+    DateTime? startTime,
+    DateTime? endTime,
+    UsageInterval usageInterval = UsageInterval.daily,
+    List<String>? packagesName,
+  }) {
     throw UnimplementedError();
   }
 
@@ -40,13 +44,15 @@ class MockScreenTimePlatform
   }
 
   @override
-  Future<MonitoringAppUsage> monitoringAppUsage(
-      {int startHour = 0,
-      int startMinute = 0,
-      int endHour = 23,
-      int endMinute = 59,
-      UsageInterval usageInterval = UsageInterval.daily,
-      int lookbackTimeMs = 10000}) {
+  Future<MonitoringAppUsage> monitoringAppUsage({
+    int startHour = 0,
+    int startMinute = 0,
+    int endHour = 23,
+    int endMinute = 59,
+    UsageInterval usageInterval = UsageInterval.daily,
+    int lookbackTimeMs = 10000,
+    List<String>? packagesName,
+  }) {
     throw UnimplementedError();
   }
 

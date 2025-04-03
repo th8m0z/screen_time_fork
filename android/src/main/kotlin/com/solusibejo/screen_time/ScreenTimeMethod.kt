@@ -1,5 +1,6 @@
 package com.solusibejo.screen_time
 
+import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
@@ -34,10 +35,19 @@ object ScreenTimeMethod {
      *         - data: ArrayList of app details including name, category, version, and icon
      *         - error: Error message if the operation failed
      */
-    fun installedApps(context: Context): Map<String, Any> {
+    fun installedApps(context: Context, ignoreSystemApps: Boolean = true): Map<String, Any> {
         try {
             val packageManager = context.packageManager
-            val apps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+            val apps = ArrayList<ApplicationInfo>()
+
+            val installedApplications = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+            if(ignoreSystemApps){
+                val filtered = installedApplications.filter { app -> (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
+                apps.addAll(filtered)
+            }
+            else {
+                apps.addAll(installedApplications)
+            }
 
             val appMap = ArrayList<MutableMap<String, Any?>>()
 
@@ -63,6 +73,7 @@ object ScreenTimeMethod {
 
                 val data = mutableMapOf(
                     Field.appName to app.loadLabel(packageManager),
+                    Field.packageName to app.packageName,
                     Field.enabled to app.enabled,
                     Field.category to appCategory,
                     Field.versionName to packageInfo.versionName,
@@ -208,6 +219,7 @@ object ScreenTimeMethod {
         startTime: Long?,
         endTime: Long?,
         interval: UsageInterval = UsageInterval.DAILY,
+        packagesName: List<String>?
     ): Map<String, Any> {
         try {
             val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
@@ -221,9 +233,18 @@ object ScreenTimeMethod {
             val startTimeDefault = calendar.timeInMillis
             val start = startTime ?: startTimeDefault
 
-            val stats = usageStatsManager.queryUsageStats(
+            val stats = ArrayList<UsageStats>()
+            val queryResult = usageStatsManager.queryUsageStats(
                 interval.type, start, end
             )
+            if(packagesName != null){
+                val result = queryResult.filter { it.packageName in packagesName }
+                stats.addAll(result)
+            }
+            else{
+                stats.addAll(queryResult)
+            }
+
             val usageMap = ArrayList<Map<String, Any>>()
 
             for (usageStat in stats) {
@@ -298,7 +319,8 @@ object ScreenTimeMethod {
         endHour: Int = 23,
         endMinute: Int = 59,
         interval: UsageInterval = UsageInterval.DAILY,
-        lookbackTimeMs: Long = 10 * 1000 // Default: 10 seconds lookback
+        lookbackTimeMs: Long = 10 * 1000, // Default: 10 seconds lookback
+        packagesName: List<String>?,
     ): Map<String, Any> {
         try {
             // Use WorkManager for collecting usage statistics within the specified time range
@@ -316,7 +338,7 @@ object ScreenTimeMethod {
             WorkManager.getInstance(context).enqueue(workRequest)
             
             // Get current foreground app using UsageStatsManager with detailed information
-            val currentApp = currentForegroundApp(context, interval, lookbackTimeMs)
+            val currentApp = currentForegroundApp(context, interval, lookbackTimeMs, packagesName)
             
             val resultData = mutableMapOf<String, Any>(
                 Field.startTime to "${timeInString(startHour)}:${timeInString(startMinute)}",
@@ -403,7 +425,8 @@ object ScreenTimeMethod {
     private fun currentForegroundApp(
         context: Context,
         interval: UsageInterval = UsageInterval.DAILY,
-        lookbackTimeMs: Long = 10 * 1000 // Default: 10 seconds lookback
+        lookbackTimeMs: Long = 10 * 1000, // Default: 10 seconds lookback
+        packagesName: List<String>?,
     ): Map<String, Any>? {
         try {
             // Check if we have the permission
@@ -419,7 +442,8 @@ object ScreenTimeMethod {
                 context,
                 startTime,
                 time,
-                interval
+                interval,
+                packagesName,
             )
             
             // Check if we got valid data

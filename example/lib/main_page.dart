@@ -3,9 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:screen_time/screen_time.dart';
-import 'package:screen_time_example/app_monitoring_settings.dart';
 
-import 'app_usage_page.dart';
 import 'installed_apps_page.dart';
 
 class MainPage extends StatefulWidget {
@@ -95,6 +93,14 @@ class _MainPageState extends State<MainPage> {
                       ),
                       const SizedBox(height: 8),
                       _buildMethodButton(
+                        'Request App Usage Permission',
+                        () => _executeMethod(() async {
+                          final result = await _screenTime.requestPermission();
+                          return jsonEncode({'status': result.status});
+                        }),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildMethodButton(
                         'Fetch Installed Application',
                         () async {
                           showDialog(
@@ -120,44 +126,6 @@ class _MainPageState extends State<MainPage> {
                             ),
                           );
                         },
-                      ),
-                      _buildMethodButton(
-                        'Request App Usage Permission',
-                        () => _executeMethod(() async {
-                          final result = await _screenTime.requestPermission();
-                          return jsonEncode({'status': result.status});
-                        }),
-                      ),
-                      _buildMethodButton(
-                        'Fetch App Usage Data',
-                        () => _executeMethod(() async {
-                          final ctx = context;
-
-                          final result = await _screenTime.appUsageData(
-                            startTime: null,
-                            endTime: null,
-                          );
-
-                          if (!ctx.mounted) return;
-                          Navigator.push(
-                            ctx,
-                            MaterialPageRoute(
-                              builder: (context) => AppUsagePage(apps: result),
-                            ),
-                          );
-                        }),
-                      ),
-                      _buildMethodButton(
-                        'Monitor App Usage',
-                        () => _executeMethod(() async {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) => AppMonitoringSettingsScreen(),
-                            ),
-                          );
-                        }),
                       ),
                     ],
                   ),

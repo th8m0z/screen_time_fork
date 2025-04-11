@@ -77,6 +77,9 @@ class MockScreenTimePlatform
   Future<bool> unblockApps({List<String> packagesName = const <String>[]}) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<bool> get isOnBlockingApps => throw UnimplementedError();
 }
 
 void main() {

@@ -76,6 +76,9 @@ abstract class ScreenTimePlatform extends PlatformInterface {
   }) =>
       throw UnimplementedError('blockApps() has not been implemented.');
 
+  Future<bool> get isOnBlockingApps =>
+      throw UnimplementedError('isOnBlockingApps() has not been implemented.');
+
   Future<bool> unblockApps({
     List<String> packagesName = const <String>[],
   }) =>

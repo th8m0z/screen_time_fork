@@ -1,3 +1,7 @@
+## 0.6.1 - April 11, 2025
+* Add checker for is on blocking apps or not
+* Stop service on unblock
+
 ## 0.6.0 - April 11, 2025
 * Implement Blocked Apps
 

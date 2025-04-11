@@ -434,13 +434,21 @@ object ScreenTimeMethod {
         return ServiceUtil.isRunning(context, BlockAppService::class.java.name)
     }
 
+    fun isOnBlockingApps(context: Context): Boolean {
+        return ServiceUtil.isRunning(context, BlockAppService::class.java.name)
+    }
+
     fun unblockApps(
+        context: Context,
         packagesName: List<String>,
         sharedPreferences: SharedPreferences,
     ): Boolean {
         val editor = sharedPreferences.edit()
         editor.putBoolean("Blocking", false)
         editor.apply()
+
+        val intent = Intent(context, BlockAppService::class.java)
+        context.stopService(intent)
 
         return  true
     }

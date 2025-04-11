@@ -70,6 +70,17 @@ abstract class ScreenTimePlatform extends PlatformInterface {
     throw UnimplementedError('appUsageData() has not been implemented.');
   }
 
+  Future<bool> blockApps({
+    List<String> packagesName = const <String>[],
+    required Duration duration,
+  }) =>
+      throw UnimplementedError('blockApps() has not been implemented.');
+
+  Future<bool> unblockApps({
+    List<String> packagesName = const <String>[],
+  }) =>
+      throw UnimplementedError('unblockApps() has not been implemented.');
+
   /// Start monitoring app usage with the specified schedule.
   ///
   /// Parameters:

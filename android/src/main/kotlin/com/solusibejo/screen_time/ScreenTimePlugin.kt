@@ -1,6 +1,7 @@
 package com.solusibejo.screen_time
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.solusibejo.screen_time.const.Argument
 import com.solusibejo.screen_time.const.Field
 import com.solusibejo.screen_time.const.MethodName
@@ -19,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.Duration
 import java.util.Locale
 
 /** ScreenTimePlugin */
@@ -30,6 +32,7 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
   private lateinit var channel : MethodChannel
   private lateinit var eventChannel: EventChannel
   private lateinit var context: Context
+  private lateinit var sharedPreferences: SharedPreferences
   private var eventSink: EventChannel.EventSink? = null
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -41,6 +44,7 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
     eventChannel.setStreamHandler(this)
     
     context = flutterPluginBinding.applicationContext
+    sharedPreferences = context.getSharedPreferences("screen_time", Context.MODE_PRIVATE)
   }
 
   override fun onMethodCall(call: MethodCall, result: Result) {
@@ -105,6 +109,30 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
           val error = data[Field.error]
           result.error("500", "Failed to fetch app usage data", error)
         }
+      }
+      MethodName.blockApps -> {
+        val args = call.arguments as Map<String, Any?>
+        val packagesName = args[Argument.packagesName] as List<*>?
+        val durationInMillisecond = args[Argument.duration] as Int
+
+        val duration = Duration.ofMillis(durationInMillisecond.toLong())
+        val response = ScreenTimeMethod.blockApps(
+          context,
+          packagesName?.filterIsInstance<String>() ?: mutableListOf(),
+          duration,
+          sharedPreferences,
+        )
+        result.success(response)
+      }
+      MethodName.unblockApps -> {
+        val args = call.arguments as Map<String, Any?>
+        val packagesName = args[Argument.packagesName] as List<*>?
+
+        val response = ScreenTimeMethod.unblockApps(
+          packagesName?.filterIsInstance<String>() ?: mutableListOf(),
+          sharedPreferences
+        )
+        result.success(response)
       }
       MethodName.monitoringAppUsage -> {
         val args = call.arguments as Map<String, Any?>

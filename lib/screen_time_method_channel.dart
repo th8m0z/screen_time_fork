@@ -106,6 +106,34 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
   }
 
   @override
+  Future<bool> blockApps({
+    List<String> packagesName = const <String>[],
+    required Duration duration,
+  }) async {
+    final arguments = <Object?, Object?>{
+      Argument.packagesName: packagesName,
+      Argument.duration: duration.inMilliseconds,
+    };
+
+    return await methodChannel.invokeMethod<bool>(
+            MethodName.blockApps, arguments) ??
+        false;
+  }
+
+  @override
+  Future<bool> unblockApps({
+    List<String> packagesName = const <String>[],
+  }) async {
+    final arguments = <Object?, Object?>{
+      Argument.packagesName: packagesName,
+    };
+
+    return await methodChannel.invokeMethod<bool>(
+            MethodName.unblockApps, arguments) ??
+        false;
+  }
+
+  @override
   Future<MonitoringAppUsage> monitoringAppUsage({
     int startHour = 0,
     int startMinute = 0,

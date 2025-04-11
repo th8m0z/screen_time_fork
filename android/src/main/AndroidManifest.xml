@@ -7,6 +7,24 @@ xmlns:tools="http://schemas.android.com/tools"
         tools:ignore="ProtectedPermissions" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-  <uses-permission android:name="android.permission.GET_TASKS" />
   <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  
+  <uses-permission android:name="android.permission.VIBRATE" />
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+  <uses-permission android:name="android.permission.CALL_PHONE" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+<!--  <uses-permission android:name="android.permission.USE_EXACT_ALARM" android:minSdkVersion="33"/>-->
+
+  <application>
+    <receiver android:name=".receiver.BootReceiver" android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <category android:name="android.intent.category.DEFAULT" />
+      </intent-filter>
+    </receiver>
+    <service android:name=".service.BlockAppService" />
+    <receiver android:name=".receiver.AlarmReceiver"/>
+  </application>
 </manifest>

@@ -124,11 +124,16 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
         )
         result.success(response)
       }
+      MethodName.isOnBlockingApps -> {
+        val response = ScreenTimeMethod.isOnBlockingApps(context)
+        result.success(response)
+      }
       MethodName.unblockApps -> {
         val args = call.arguments as Map<String, Any?>
         val packagesName = args[Argument.packagesName] as List<*>?
 
         val response = ScreenTimeMethod.unblockApps(
+          context,
           packagesName?.filterIsInstance<String>() ?: mutableListOf(),
           sharedPreferences
         )

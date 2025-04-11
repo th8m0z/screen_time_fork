@@ -121,6 +121,11 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
   }
 
   @override
+  Future<bool> get isOnBlockingApps async =>
+      await methodChannel.invokeMethod<bool>(MethodName.isOnBlockingApps) ??
+      false;
+
+  @override
   Future<bool> unblockApps({
     List<String> packagesName = const <String>[],
   }) async {

@@ -80,6 +80,9 @@ class ScreenTime {
     );
   }
 
+  Future<bool> get isOnBlockingApps =>
+      ScreenTimePlatform.instance.isOnBlockingApps;
+
   Future<bool> unblockApps({
     List<String> packagesName = const <String>[],
   }) async {

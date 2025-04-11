@@ -146,13 +146,22 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                       : 'Need Usage Stat, Request Draw Overlay, and Query All Packages',
                 ),
                 onTap: () async {
+                  final modalCtx = modalContext;
                   if (appUsagePermission ==
                           ScreenTimePermissionStatus.approved &&
                       drawOverlayPermission ==
                           ScreenTimePermissionStatus.approved &&
                       queryAllPackagesPermission ==
                           ScreenTimePermissionStatus.approved) {
-                    await _screenTime.blockApps(duration: Duration(hours: 1));
+                    final isOnBlocking = await _screenTime.isOnBlockingApps;
+                    if (isOnBlocking) {
+                      await _screenTime.unblockApps();
+                    } else {
+                      await _screenTime.blockApps(duration: Duration(hours: 1));
+                    }
+
+                    if (!modalCtx.mounted) return;
+                    Navigator.pop(modalCtx);
                   } else {
                     Navigator.pop(modalContext);
                   }

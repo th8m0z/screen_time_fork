@@ -6,6 +6,7 @@ object MethodName {
     const val installedApps = "installedApps"
     const val appUsageData = "appUsageData"
     const val blockApps = "blockApps"
+    const val isOnBlockingApps = "isOnBlockingApps"
     const val unblockApps = "unblockApps"
     const val monitoringAppUsage = "monitoringAppUsage"
     const val configureAppMonitoringService = "configureAppMonitoringService"

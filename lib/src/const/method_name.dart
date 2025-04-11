@@ -5,6 +5,7 @@ class MethodName {
   static const permissionStatus = 'permissionStatus';
   static const blockApps = 'blockApps';
   static const unblockApps = 'unblockApps';
+  static const isOnBlockingApps = 'isOnBlockingApps';
 
   static const monitoringAppUsage = 'monitoringAppUsage';
   static const configureAppMonitoringService = 'configureAppMonitoringService';

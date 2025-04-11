@@ -1,3 +1,7 @@
+## 0.5.0 - April 11, 2025
+* Add request permission draw overlay
+* Add check permission draw overlay
+
 ## 0.4.2 - April 6, 2025
 * Add App Category on App Usage
 * To get category better to use minimum Android 26

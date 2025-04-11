@@ -113,9 +113,78 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
                       _buildMethodButton(
                         'Request App Usage Permission',
                         () => _executeMethod(() async {
-                          final result = await _screenTime.requestPermission();
-                          await checkPermission();
-                          return jsonEncode({'status': result});
+                          final result = await showModalBottomSheet(
+                            context: context,
+                            builder:
+                                (context) => Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ListTile(
+                                      title: Text(
+                                        ScreenTimePermissionType.appUsage.name,
+                                      ),
+                                      trailing: Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        final ctx = context;
+                                        final permission = await _screenTime
+                                            .requestPermission(
+                                              permissionType:
+                                                  ScreenTimePermissionType
+                                                      .appUsage,
+                                            );
+
+                                        if (!ctx.mounted) return;
+                                        Navigator.pop(ctx, permission);
+                                      },
+                                    ),
+                                    ListTile(
+                                      title: Text(
+                                        ScreenTimePermissionType
+                                            .accessibilitySettings
+                                            .name,
+                                      ),
+                                      trailing: Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        final ctx = context;
+                                        final permission = await _screenTime
+                                            .requestPermission(
+                                              permissionType:
+                                                  ScreenTimePermissionType
+                                                      .accessibilitySettings,
+                                            );
+
+                                        if (!ctx.mounted) return;
+                                        Navigator.pop(ctx, permission);
+                                      },
+                                    ),
+                                    ListTile(
+                                      title: Text(
+                                        ScreenTimePermissionType
+                                            .drawOverlay
+                                            .name,
+                                      ),
+                                      trailing: Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        final ctx = context;
+                                        final permission = await _screenTime
+                                            .requestPermission(
+                                              permissionType:
+                                                  ScreenTimePermissionType
+                                                      .drawOverlay,
+                                            );
+
+                                        if (!ctx.mounted) return;
+                                        Navigator.pop(ctx, permission);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                          );
+
+                          if (result is bool) {
+                            await checkPermission();
+                            return jsonEncode({'status': result});
+                          }
                         }),
                       ),
                       const SizedBox(height: 8),

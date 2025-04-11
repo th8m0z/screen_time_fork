@@ -11,6 +11,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.util.Base64
@@ -177,31 +178,50 @@ object ScreenTimeMethod {
         interval: UsageInterval = UsageInterval.DAILY,
         type: ScreenTimePermissionType = ScreenTimePermissionType.APP_USAGE,
     ): Boolean {
-        if(type == ScreenTimePermissionType.APP_USAGE){
-            if(!checkIfStatsAreAvailable(context, interval)){
-                try {
-                    val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    context.startActivity(intent)
+        return when(type){
+            ScreenTimePermissionType.APP_USAGE -> {
+                if(!checkIfStatsAreAvailable(context, interval)){
+                    try {
+                        val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        context.startActivity(intent)
 
-                    return true
-                } catch (exception: Exception){
-                    exception.localizedMessage?.let { Log.e("requestPermission appUsage", it) }
-                    return false
+                        true
+                    } catch (exception: Exception){
+                        exception.localizedMessage?.let { Log.e("requestPermission appUsage", it) }
+                        false
+                    }
+                }
+                else {
+                    false
                 }
             }
-            else {
-                return false
+            ScreenTimePermissionType.ACCESSIBILITY_SETTINGS -> {
+                try {
+                    val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    context.startActivity(intent)
+                    true
+                } catch (e: Exception) {
+                    false
+                }
             }
-        }
-        else {
-            try {
-                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                context.startActivity(intent)
-                return true
-            } catch (e: Exception) {
-                return false
+            ScreenTimePermissionType.DRAW_OVERLAY -> {
+                try {
+                    if (!Settings.canDrawOverlays(context)) {
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:" + context.packageName)
+                        )
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        context.startActivity(intent)
+                    }
+
+                    true
+                } catch (exception: Exception){
+                    exception.localizedMessage?.let { Log.e("requestPermission manageOverlayPermission", it) }
+                    false
+                }
             }
         }
     }
@@ -210,43 +230,53 @@ object ScreenTimeMethod {
         context: Context,
         type: ScreenTimePermissionType = ScreenTimePermissionType.APP_USAGE
     ): ScreenTimePermissionStatus {
-        if(type == ScreenTimePermissionType.APP_USAGE){
-            val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-            val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                appOps.unsafeCheckOpNoThrow(
-                    AppOpsManager.OPSTR_GET_USAGE_STATS,
-                    android.os.Process.myUid(),
-                    context.packageName
-                )
-            } else {
-                appOps.checkOpNoThrow(
-                    AppOpsManager.OPSTR_GET_USAGE_STATS,
-                    android.os.Process.myUid(),
-                    context.packageName
-                )
-            }
-
-            return when(mode){
-                AppOpsManager.MODE_ALLOWED -> {
-                    ScreenTimePermissionStatus.APPROVED
+        when(type){
+            ScreenTimePermissionType.APP_USAGE -> {
+                val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+                val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    appOps.unsafeCheckOpNoThrow(
+                        AppOpsManager.OPSTR_GET_USAGE_STATS,
+                        android.os.Process.myUid(),
+                        context.packageName
+                    )
+                } else {
+                    appOps.checkOpNoThrow(
+                        AppOpsManager.OPSTR_GET_USAGE_STATS,
+                        android.os.Process.myUid(),
+                        context.packageName
+                    )
                 }
 
-                AppOpsManager.MODE_IGNORED -> {
+                return when(mode){
+                    AppOpsManager.MODE_ALLOWED -> {
+                        ScreenTimePermissionStatus.APPROVED
+                    }
+
+                    AppOpsManager.MODE_IGNORED -> {
+                        ScreenTimePermissionStatus.DENIED
+                    }
+
+                    else -> {
+                        ScreenTimePermissionStatus.NOT_DETERMINED
+                    }
+                }
+            }
+            ScreenTimePermissionType.ACCESSIBILITY_SETTINGS -> {
+                val result = AppMonitoringService.isServiceRunning(context)
+                if(result){
+                    return ScreenTimePermissionStatus.APPROVED
+                }
+                else {
+                    return ScreenTimePermissionStatus.DENIED
+                }
+            }
+            ScreenTimePermissionType.DRAW_OVERLAY -> {
+                val result = Settings.canDrawOverlays(context)
+                return if(result){
+                    ScreenTimePermissionStatus.APPROVED
+                } else {
                     ScreenTimePermissionStatus.DENIED
                 }
-
-                else -> {
-                    ScreenTimePermissionStatus.NOT_DETERMINED
-                }
-            }
-        }
-        else {
-            val result = AppMonitoringService.isServiceRunning(context)
-            if(result){
-                return ScreenTimePermissionStatus.APPROVED
-            }
-            else {
-                return ScreenTimePermissionStatus.DENIED
             }
         }
     }
@@ -460,7 +490,7 @@ object ScreenTimeMethod {
             
             val time = System.currentTimeMillis()
             val startTime = time - lookbackTimeMs
-            
+
             // Reuse appUsageData to get usage stats for the specified lookback time and interval
             val result = appUsageData(
                 context,

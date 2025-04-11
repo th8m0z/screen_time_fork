@@ -17,6 +17,7 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
     with TickerProviderStateMixin {
   late TabController _tabController;
   final _screenTime = ScreenTime();
+  final _selectedApp = <InstalledApp>{};
 
   @override
   void initState() {
@@ -39,51 +40,65 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
           controller: _tabController,
           tabs: const [Tab(text: 'All Apps'), Tab(text: 'By Category')],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () async {
-              final ctx = context;
-              final packagesName =
-                  widget.installedApps
-                      .map((app) => app.packageName ?? '')
-                      .toList();
-              final result = await _screenTime.appUsageData(
-                packagesName: packagesName,
-              );
-
-              if (!ctx.mounted) return;
-              Navigator.push(
-                ctx,
-                MaterialPageRoute(
-                  builder: (context) => AppUsagePage(apps: result),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.monitor),
-            onPressed: () async {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) => AppMonitoringSettingsScreen(
-                        packagesName:
-                            widget.installedApps
-                                .map((app) => app.packageName ?? '')
-                                .toList(),
-                      ),
-                ),
-              );
-            },
-          ),
-        ],
       ),
       body: TabBarView(
         controller: _tabController,
         children: [_buildAllAppsList(), _buildCategorizedAppsList()],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => onFloatingActionPressed(context),
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  void onFloatingActionPressed(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder:
+          (context) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.history),
+                title: Text('App Usage'),
+                onTap: () async {
+                  final ctx = context;
+                  final packagesName =
+                      _selectedApp.map((app) => app.packageName ?? '').toList();
+                  final result = await _screenTime.appUsageData(
+                    packagesName: packagesName,
+                  );
+
+                  if (!ctx.mounted) return;
+                  Navigator.push(
+                    ctx,
+                    MaterialPageRoute(
+                      builder: (context) => AppUsagePage(apps: result),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.monitor),
+                title: Text('App Monitoring'),
+                onTap: () async {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => AppMonitoringSettingsScreen(
+                            packagesName:
+                                _selectedApp
+                                    .map((app) => app.packageName ?? '')
+                                    .toList(),
+                          ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
     );
   }
 
@@ -92,12 +107,43 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
       itemCount: widget.installedApps.length,
       itemBuilder: (context, index) {
         final app = widget.installedApps[index];
-        return ListTile(
-          leading:
-              app.iconInBytes != null ? Image.memory(app.iconInBytes!) : null,
-          title: Text(app.appName ?? "Unknown"),
-          subtitle: Text(app.packageName ?? "-"),
-          trailing: Text(app.category.name),
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Checkbox(
+                value: _selectedApp.contains(app),
+                onChanged: (isSelected) {
+                  setState(() {
+                    if (isSelected == true) {
+                      _selectedApp.add(app);
+                    } else {
+                      _selectedApp.remove(app);
+                    }
+                  });
+                },
+              ),
+              app.iconInBytes != null
+                  ? Image.memory(app.iconInBytes!, width: 60, height: 60)
+                  : const SizedBox.shrink(),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(app.appName ?? "Unknown"),
+                    Text(
+                      app.packageName ?? "-",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Text(app.category.name),
+              const SizedBox(width: 16),
+            ],
+          ),
         );
       },
     );
@@ -130,13 +176,44 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
           children:
               appsInCategory
                   .map(
-                    (app) => ListTile(
-                      leading:
-                          app.iconInBytes != null
-                              ? Image.memory(app.iconInBytes!)
-                              : const Icon(Icons.android),
-                      title: Text(app.appName ?? "Unknown"),
-                      subtitle: Text(app.packageName ?? "-"),
+                    (app) => Row(
+                      children: [
+                        Checkbox(
+                          value: _selectedApp.contains(app),
+                          onChanged: (isSelected) {
+                            setState(() {
+                              if (isSelected == true) {
+                                _selectedApp.add(app);
+                              } else {
+                                _selectedApp.remove(app);
+                              }
+                            });
+                          },
+                        ),
+                        app.iconInBytes != null
+                            ? Image.memory(
+                              app.iconInBytes!,
+                              width: 60,
+                              height: 60,
+                            )
+                            : const SizedBox.shrink(),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(app.appName ?? "Unknown"),
+                              Text(
+                                app.packageName ?? "-",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(app.category.name),
+                        const SizedBox(width: 16),
+                      ],
                     ),
                   )
                   .toList(),

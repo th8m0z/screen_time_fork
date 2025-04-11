@@ -43,7 +43,7 @@ class _AppMonitoringSettingsScreenState
 
   @override
   void dispose() {
-    _stopMonitoring();
+    _appUsageSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

@@ -1,4 +1,7 @@
-## 0.5.0 - April 11, 2025
+## 0.6.0 - April 11, 2025
+* Implement Blocked Apps
+
+## 0.5.0 - April 10, 2025
 * Add request permission draw overlay
 * Add check permission draw overlay
 

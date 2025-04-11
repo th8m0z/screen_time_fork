@@ -8,6 +8,7 @@ object Argument {
     const val lookbackTimeMs = "lookbackTimeMs"
     const val ignoreSystemApps = "ignoreSystemApps"
     const val packagesName = "packagesName"
+    const val duration = "duration"
 
     const val startHour = "startHour"
     const val startMinute = "startMinute"

@@ -65,6 +65,18 @@ class MockScreenTimePlatform
           ScreenTimePermissionType.appUsage}) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<bool> blockApps(
+      {List<String> packagesName = const <String>[],
+      required Duration duration}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> unblockApps({List<String> packagesName = const <String>[]}) {
+    throw UnimplementedError();
+  }
 }
 
 void main() {

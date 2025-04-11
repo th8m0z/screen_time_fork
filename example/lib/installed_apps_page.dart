@@ -52,49 +52,139 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
     );
   }
 
-  void onFloatingActionPressed(BuildContext context) {
+  void onFloatingActionPressed(BuildContext context) async {
+    final ctx = context;
+    final appUsagePermission = await _screenTime.permissionStatus(
+      permissionType: ScreenTimePermissionType.appUsage,
+    );
+    final drawOverlayPermission = await _screenTime.permissionStatus(
+      permissionType: ScreenTimePermissionType.drawOverlay,
+    );
+    final queryAllPackagesPermission = await _screenTime.permissionStatus(
+      permissionType: ScreenTimePermissionType.queryAllPackages,
+    );
+    final accessibiltySettingsPermission = await _screenTime.permissionStatus(
+      permissionType: ScreenTimePermissionType.accessibilitySettings,
+    );
+
+    if (!ctx.mounted) return;
     showModalBottomSheet(
-      context: context,
+      context: ctx,
       builder:
-          (context) => Column(
+          (modalContext) => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: Icon(Icons.history),
-                title: Text('App Usage'),
+                title: Text(
+                  appUsagePermission == ScreenTimePermissionStatus.approved
+                      ? 'App Usage'
+                      : 'Need Request App Usage Permission',
+                ),
                 onTap: () async {
-                  final ctx = context;
-                  final packagesName =
-                      _selectedApp.map((app) => app.packageName ?? '').toList();
-                  final result = await _screenTime.appUsageData(
-                    packagesName: packagesName,
-                  );
+                  final appUsageContext = modalContext;
+                  if (appUsagePermission ==
+                      ScreenTimePermissionStatus.approved) {
+                    final packagesName =
+                        _selectedApp
+                            .map((app) => app.packageName ?? '')
+                            .toList();
+                    final result = await _screenTime.appUsageData(
+                      packagesName: packagesName,
+                    );
 
-                  if (!ctx.mounted) return;
-                  Navigator.push(
-                    ctx,
-                    MaterialPageRoute(
-                      builder: (context) => AppUsagePage(apps: result),
-                    ),
-                  );
+                    if (!appUsageContext.mounted) return;
+                    Navigator.push(
+                      appUsageContext,
+                      MaterialPageRoute(
+                        builder: (context) => AppUsagePage(apps: result),
+                      ),
+                    );
+                  } else {
+                    Navigator.pop(modalContext);
+                  }
                 },
               ),
               ListTile(
                 leading: Icon(Icons.monitor),
-                title: Text('App Monitoring'),
+                title: Text(
+                  (accessibiltySettingsPermission ==
+                          ScreenTimePermissionStatus.approved)
+                      ? 'App Monitoring'
+                      : 'Need Request App Monitoring Permission',
+                ),
                 onTap: () async {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => AppMonitoringSettingsScreen(
-                            packagesName:
-                                _selectedApp
-                                    .map((app) => app.packageName ?? '')
-                                    .toList(),
-                          ),
-                    ),
-                  );
+                  if (accessibiltySettingsPermission ==
+                      ScreenTimePermissionStatus.approved) {
+                    final appMonitoringContext = modalContext;
+                    Navigator.push(
+                      appMonitoringContext,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => AppMonitoringSettingsScreen(
+                              packagesName:
+                                  _selectedApp
+                                      .map((app) => app.packageName ?? '')
+                                      .toList(),
+                            ),
+                      ),
+                    );
+                  } else {
+                    Navigator.pop(modalContext);
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.block),
+                title: Text(
+                  (appUsagePermission == ScreenTimePermissionStatus.approved &&
+                          drawOverlayPermission ==
+                              ScreenTimePermissionStatus.approved &&
+                          queryAllPackagesPermission ==
+                              ScreenTimePermissionStatus.approved)
+                      ? 'Block Apps'
+                      : 'Need Usage Stat, Request Draw Overlay, and Query All Packages',
+                ),
+                onTap: () async {
+                  if (appUsagePermission ==
+                          ScreenTimePermissionStatus.approved &&
+                      drawOverlayPermission ==
+                          ScreenTimePermissionStatus.approved &&
+                      queryAllPackagesPermission ==
+                          ScreenTimePermissionStatus.approved) {
+                    await _screenTime.blockApps(duration: Duration(hours: 1));
+                  } else {
+                    Navigator.pop(modalContext);
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.monitor),
+                title: Text(
+                  (accessibiltySettingsPermission ==
+                          ScreenTimePermissionStatus.approved)
+                      ? 'App Monitoring'
+                      : 'Need Request App Monitoring Permission',
+                ),
+                onTap: () async {
+                  if (accessibiltySettingsPermission ==
+                      ScreenTimePermissionStatus.approved) {
+                    final appMonitoringContext = modalContext;
+                    Navigator.push(
+                      appMonitoringContext,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => AppMonitoringSettingsScreen(
+                              packagesName:
+                                  _selectedApp
+                                      .map((app) => app.packageName ?? '')
+                                      .toList(),
+                            ),
+                      ),
+                    );
+                  } else {
+                    Navigator.pop(modalContext);
+                  }
                 },
               ),
             ],

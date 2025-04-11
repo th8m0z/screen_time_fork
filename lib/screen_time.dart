@@ -70,6 +70,24 @@ class ScreenTime {
     );
   }
 
+  Future<bool> blockApps({
+    List<String> packagesName = const <String>[],
+    required Duration duration,
+  }) async {
+    return await ScreenTimePlatform.instance.blockApps(
+      packagesName: packagesName,
+      duration: duration,
+    );
+  }
+
+  Future<bool> unblockApps({
+    List<String> packagesName = const <String>[],
+  }) async {
+    return await ScreenTimePlatform.instance.unblockApps(
+      packagesName: packagesName,
+    );
+  }
+
   /// Start monitoring app usage with the specified schedule.
   ///
   /// Parameters:

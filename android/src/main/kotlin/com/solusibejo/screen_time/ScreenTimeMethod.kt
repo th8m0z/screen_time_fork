@@ -1,10 +1,12 @@
 package com.solusibejo.screen_time
 
+import android.Manifest
 import android.app.AppOpsManager
 import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -24,13 +26,17 @@ import com.solusibejo.screen_time.const.ScreenTimePermissionStatus
 import com.solusibejo.screen_time.const.ScreenTimePermissionType
 import com.solusibejo.screen_time.const.UsageInterval
 import com.solusibejo.screen_time.service.AppMonitoringService
+import com.solusibejo.screen_time.service.BlockAppService
 import com.solusibejo.screen_time.util.ApplicationInfoUtil
 import com.solusibejo.screen_time.util.UsageStatsWorker
 import com.solusibejo.screen_time.util.IntExtension.timeInString
+import com.solusibejo.screen_time.util.ServiceUtil
 import io.flutter.Log
 import java.io.ByteArrayOutputStream
+import java.time.Duration
 
 object ScreenTimeMethod {
+    private const val QUERY_ALL_PACKAGES_REQUEST_CODE = 2001
     /**
      * Retrieves a list of all installed applications on the device with their details.
      *
@@ -223,6 +229,22 @@ object ScreenTimeMethod {
                     false
                 }
             }
+            ScreenTimePermissionType.QUERY_ALL_PACKAGES -> {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        intent.data = Uri.parse("package:${context.packageName}")
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        context.startActivity(intent)
+                        true
+                    } else {
+                        false // Permission not needed for Android < R
+                    }
+                } catch (exception: Exception) {
+                    exception.localizedMessage?.let { Log.e("requestPermission QUERY_ALL_PACKAGES", it) }
+                    false
+                }
+            }
         }
     }
 
@@ -263,11 +285,10 @@ object ScreenTimeMethod {
             }
             ScreenTimePermissionType.ACCESSIBILITY_SETTINGS -> {
                 val result = AppMonitoringService.isServiceRunning(context)
-                if(result){
-                    return ScreenTimePermissionStatus.APPROVED
-                }
-                else {
-                    return ScreenTimePermissionStatus.DENIED
+                return if(result){
+                    ScreenTimePermissionStatus.APPROVED
+                } else {
+                    ScreenTimePermissionStatus.DENIED
                 }
             }
             ScreenTimePermissionType.DRAW_OVERLAY -> {
@@ -276,6 +297,25 @@ object ScreenTimeMethod {
                     ScreenTimePermissionStatus.APPROVED
                 } else {
                     ScreenTimePermissionStatus.DENIED
+                }
+            }
+            ScreenTimePermissionType.QUERY_ALL_PACKAGES -> {
+                return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val permission = context.checkSelfPermission(Manifest.permission.QUERY_ALL_PACKAGES)
+                    when(permission){
+                        PackageManager.PERMISSION_GRANTED -> {
+                            ScreenTimePermissionStatus.APPROVED
+                        }
+                        PackageManager.PERMISSION_DENIED -> {
+                            ScreenTimePermissionStatus.DENIED
+                        }
+                        else -> {
+                            ScreenTimePermissionStatus.NOT_DETERMINED
+                        }
+                    }
+                }
+                else {
+                    ScreenTimePermissionStatus.APPROVED
                 }
             }
         }
@@ -375,6 +415,34 @@ object ScreenTimeMethod {
                 Field.error to exception.localizedMessage,
             )
         }
+    }
+
+    fun blockApps(
+        context: Context,
+        packagesName: List<String>,
+        duration: Duration,
+        sharedPreferences: SharedPreferences,
+    ): Boolean {
+        val editor = sharedPreferences.edit()
+        editor.putBoolean("Blocking", true)
+        editor.putBoolean("isBlocking", true)
+        editor.apply()
+
+        val intent = Intent(context, BlockAppService::class.java)
+        context.startForegroundService(intent)
+
+        return ServiceUtil.isRunning(context, BlockAppService::class.java.name)
+    }
+
+    fun unblockApps(
+        packagesName: List<String>,
+        sharedPreferences: SharedPreferences,
+    ): Boolean {
+        val editor = sharedPreferences.edit()
+        editor.putBoolean("Blocking", false)
+        editor.apply()
+
+        return  true
     }
 
     /**

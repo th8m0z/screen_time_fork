@@ -13,35 +13,10 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
+class _MainPageState extends State<MainPage> {
   final _screenTime = ScreenTime();
   String _lastResult = '';
   bool _isLoading = false;
-  bool _appUsagePermission = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) async {
-    if (state == AppLifecycleState.resumed) {
-      await checkPermission();
-    }
-  }
-
-  Future<void> checkPermission() async {
-    final isAppUsageGranted = await _screenTime.permissionStatus(
-      permissionType: ScreenTimePermissionType.appUsage,
-    );
-    setState(() {
-      _appUsagePermission =
-          (isAppUsageGranted == ScreenTimePermissionStatus.approved);
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +86,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 8),
                       _buildMethodButton(
-                        'Request App Usage Permission',
+                        'Request Permission',
                         () => _executeMethod(() async {
                           final result = await showModalBottomSheet(
                             context: context,
@@ -177,46 +152,62 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
                                         Navigator.pop(ctx, permission);
                                       },
                                     ),
+                                    ListTile(
+                                      title: Text(
+                                        ScreenTimePermissionType
+                                            .queryAllPackages
+                                            .name,
+                                      ),
+                                      trailing: Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        final ctx = context;
+                                        final permission = await _screenTime
+                                            .requestPermission(
+                                              permissionType:
+                                                  ScreenTimePermissionType
+                                                      .queryAllPackages,
+                                            );
+
+                                        if (!ctx.mounted) return;
+                                        Navigator.pop(ctx, permission);
+                                      },
+                                    ),
                                   ],
                                 ),
                           );
 
                           if (result is bool) {
-                            await checkPermission();
                             return jsonEncode({'status': result});
                           }
                         }),
                       ),
                       const SizedBox(height: 8),
-                      Visibility(
-                        visible: _appUsagePermission,
-                        child: _buildMethodButton(
-                          'Fetch Installed Application',
-                          () async {
-                            showDialog(
-                              context: context,
+                      _buildMethodButton(
+                        'Fetch Installed Application',
+                        () async {
+                          showDialog(
+                            context: context,
+                            builder:
+                                (context) => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                          );
+
+                          final ctx = context;
+                          final apps = await _screenTime.installedApps();
+
+                          if (!ctx.mounted) return;
+                          Navigator.pop(ctx);
+
+                          Navigator.push(
+                            ctx,
+                            MaterialPageRoute(
                               builder:
-                                  (context) => const Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                            );
-
-                            final ctx = context;
-                            final apps = await _screenTime.installedApps();
-
-                            if (!ctx.mounted) return;
-                            Navigator.pop(ctx);
-
-                            Navigator.push(
-                              ctx,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) =>
-                                        InstalledAppsPage(installedApps: apps),
-                              ),
-                            );
-                          },
-                        ),
+                                  (context) =>
+                                      InstalledAppsPage(installedApps: apps),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -270,11 +261,5 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
         child: Text(label),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
   }
 }

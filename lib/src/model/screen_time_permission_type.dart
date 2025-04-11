@@ -1,1 +1,6 @@
-enum ScreenTimePermissionType { appUsage, accessibilitySettings, drawOverlay }
+enum ScreenTimePermissionType {
+  appUsage,
+  accessibilitySettings,
+  drawOverlay,
+  queryAllPackages
+}

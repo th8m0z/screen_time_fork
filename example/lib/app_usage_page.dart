@@ -15,6 +15,11 @@ class AppUsagePage extends StatelessWidget {
         itemCount: apps.length,
         itemBuilder: (context, index) {
           final app = apps[index];
+
+          final hour = app.usageTime?.hour ?? 0;
+          final minute = app.usageTime?.minute ?? 0;
+          final second = app.usageTime?.second ?? 0;
+
           return Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
@@ -30,7 +35,9 @@ class AppUsagePage extends StatelessWidget {
                     Text(app.packageName ?? "Unknown"),
                     Text("First Time: ${app.firstTime?.toLocal()}"),
                     Text("Last Time: ${app.lastTime?.toLocal()}"),
-                    Text("Usage Time: ${app.usageTime?.toLocal().toString()}"),
+                    Text(
+                      "Usage Time: ${hour.toString().padLeft(2, '0')} hours, ${minute.toString().padLeft(2, '0')} minute, ${second.toString().padLeft(2, '0')} second",
+                    ),
                     Text(
                       "Last Time Used: ${app.lastTimeUsed?.toLocal().toString()}",
                     ),

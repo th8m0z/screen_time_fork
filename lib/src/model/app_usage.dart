@@ -35,7 +35,7 @@ class AppUsage {
   final DateTime? lastTimeUsed;
   final DateTime? firstTime;
   final DateTime? lastTime;
-  final DateTime? usageTime;
+  final Duration? usageTime;
   final Uint8List? iconInBytes;
   final AppCategory category;
 
@@ -63,7 +63,7 @@ class AppUsage {
             ? DateTime.fromMillisecondsSinceEpoch(json["lastTime"]!)
             : null,
         usageTime: (json["usageTime"] != null)
-            ? DateTime.fromMillisecondsSinceEpoch(json["usageTime"]!)
+            ? Duration(milliseconds: json["usageTime"]!)
             : null,
         iconInBytes: (json["appIcon"] != null)
             ? base64Decode(json["appIcon"].replaceAll("\n", ""))
@@ -80,7 +80,7 @@ class AppUsage {
         "lastTimeUsed": lastTimeUsed?.toIso8601String(),
         "firstTime": firstTime?.toIso8601String(),
         "lastTime": lastTime?.toIso8601String(),
-        "usageTime": usageTime?.toIso8601String(),
+        "usageTime": (usageTime != null) ? usageTime!.inMilliseconds : null,
         "appIcon": iconInBytes,
         "category": category.name,
       };

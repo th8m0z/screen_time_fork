@@ -1,3 +1,6 @@
+## 0.7.1 - April 14, 2025
+* Fix usage time in duration
+
 ## 0.7.0 - April 14, 2025
 * Block Specific Apps
 * Unblock Specific Apps

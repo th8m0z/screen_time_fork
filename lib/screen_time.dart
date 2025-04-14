@@ -13,6 +13,7 @@ export 'src/model/monitoring_app_usage.dart';
 export 'src/model/request_permission_model.dart';
 export 'src/model/usage_interval.dart';
 export 'src/model/screen_time_permission_type.dart';
+export 'src/util/duration_ext.dart';
 
 class ScreenTime {
   ScreenTime._();

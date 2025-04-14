@@ -14,6 +14,7 @@ xmlns:tools="http://schemas.android.com/tools"
         tools:ignore="QueryAllPackagesPermission" />
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
   
   <!-- Alarm Permissions -->
   <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />

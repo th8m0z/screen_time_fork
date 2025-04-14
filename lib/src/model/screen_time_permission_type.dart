@@ -2,5 +2,6 @@ enum ScreenTimePermissionType {
   appUsage,
   accessibilitySettings,
   drawOverlay,
-  queryAllPackages
+  queryAllPackages,
+  notification,
 }

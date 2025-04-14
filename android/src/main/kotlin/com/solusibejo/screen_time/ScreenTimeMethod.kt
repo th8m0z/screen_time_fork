@@ -2,6 +2,7 @@ package com.solusibejo.screen_time
 
 import android.Manifest
 import android.app.AppOpsManager
+import android.app.ForegroundServiceStartNotAllowedException
 import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
@@ -17,6 +18,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.util.Base64
+import androidx.core.content.ContextCompat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
@@ -248,6 +250,23 @@ object ScreenTimeMethod {
                     false
                 }
             }
+            ScreenTimePermissionType.NOTIFICATION -> {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(intent)
+                        true
+                    } else {
+                        false // Notification permission not needed for Android < 13
+                    }
+                } catch (exception: Exception) {
+                    exception.localizedMessage?.let { Log.e("requestPermission NOTIFICATION", it) }
+                    false
+                }
+            }
         }
     }
 
@@ -319,6 +338,27 @@ object ScreenTimeMethod {
                 }
                 else {
                     ScreenTimePermissionStatus.APPROVED
+                }
+            }
+            ScreenTimePermissionType.NOTIFICATION -> {
+                return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    val permission = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    )
+                    when(permission) {
+                        PackageManager.PERMISSION_GRANTED -> {
+                            ScreenTimePermissionStatus.APPROVED
+                        }
+                        PackageManager.PERMISSION_DENIED -> {
+                            ScreenTimePermissionStatus.DENIED
+                        }
+                        else -> {
+                            ScreenTimePermissionStatus.NOT_DETERMINED
+                        }
+                    }
+                } else {
+                    ScreenTimePermissionStatus.APPROVED // Notification permission not needed for Android < 13
                 }
             }
         }
@@ -420,6 +460,21 @@ object ScreenTimeMethod {
         }
     }
 
+    /**
+     * Check if notification permission is granted
+     * @return true if granted or not required (Android < 13), false otherwise
+     */
+    fun hasNotificationPermission(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true // Permission not required for Android < 13
+        }
+    }
+
     fun blockApps(
         context: Context,
         packagesName: List<String>,
@@ -429,12 +484,24 @@ object ScreenTimeMethod {
         if (packagesName.isEmpty()) return false
 
         try {
+            // Check notification permission
+            if (!hasNotificationPermission(context)) {
+                Log.e("ScreenTimeMethod", "Notification permission not granted")
+                return false
+            }
+
             // Start BlockAppService
             val intent = Intent(context, BlockAppService::class.java).apply {
                 putStringArrayListExtra("packages", ArrayList(packagesName))
                 putExtra("duration", duration.toMillis())
             }
-            context.startForegroundService(intent)
+
+            try {
+                context.startForegroundService(intent)
+            } catch (e: ForegroundServiceStartNotAllowedException) {
+                Log.e("ScreenTimeMethod", "Foreground service start not allowed", e)
+                return false
+            }
 
             // Save block state to SharedPreferences
             with(sharedPreferences.edit()) {

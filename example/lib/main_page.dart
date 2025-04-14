@@ -172,6 +172,26 @@ class _MainPageState extends State<MainPage> {
                                         Navigator.pop(ctx, permission);
                                       },
                                     ),
+                                    ListTile(
+                                      title: Text(
+                                        ScreenTimePermissionType
+                                            .notification
+                                            .name,
+                                      ),
+                                      trailing: Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        final ctx = context;
+                                        final permission = await _screenTime
+                                            .requestPermission(
+                                              permissionType:
+                                                  ScreenTimePermissionType
+                                                      .notification,
+                                            );
+
+                                        if (!ctx.mounted) return;
+                                        Navigator.pop(ctx, permission);
+                                      },
+                                    ),
                                   ],
                                 ),
                           );

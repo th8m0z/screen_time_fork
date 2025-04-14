@@ -2,6 +2,8 @@ package com.solusibejo.screen_time
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.work.Configuration
+import androidx.work.WorkManager
 import com.solusibejo.screen_time.const.Argument
 import com.solusibejo.screen_time.const.Field
 import com.solusibejo.screen_time.const.MethodName
@@ -10,6 +12,7 @@ import com.solusibejo.screen_time.const.UsageInterval
 import com.solusibejo.screen_time.service.AppMonitoringService
 import com.solusibejo.screen_time.util.EnumExtension.toCamelCase
 import com.solusibejo.screen_time.util.EnumExtension.toEnumFormat
+import io.flutter.Log
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -21,6 +24,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Locale
 
 /** ScreenTimePlugin */
@@ -39,11 +44,23 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "screen_time")
     channel.setMethodCallHandler(this)
     
+    context = flutterPluginBinding.applicationContext
+
+    // Initialize WorkManager
+    try {
+      val config = Configuration.Builder()
+        .setMinimumLoggingLevel(android.util.Log.INFO)
+        .build()
+      WorkManager.initialize(context, config)
+    } catch (e: IllegalStateException) {
+      // WorkManager might already be initialized by the app
+      Log.i("ScreenTimePlugin", "WorkManager already initialized")
+    }
+
     // Set up event channel for streaming app usage data
     eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "screen_time/app_usage_stream")
     eventChannel.setStreamHandler(this)
     
-    context = flutterPluginBinding.applicationContext
     sharedPreferences = context.getSharedPreferences("screen_time", Context.MODE_PRIVATE)
   }
 
@@ -123,6 +140,47 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
           sharedPreferences,
         )
         result.success(response)
+      }
+      MethodName.scheduleBlock -> {
+        val args = call.arguments as Map<String, Any?>
+        val scheduleId = args[Argument.scheduleId] as String
+        val packagesName = args[Argument.packagesName] as List<*>?
+        val startTime = args[Argument.startTime] as Int
+        val durationInMillisecond = args[Argument.duration] as Int
+        val recurring = args[Argument.recurring]as Boolean
+        val daysOfWeek = args[Argument.daysOfWeek] as List<*>?
+
+        val duration = Duration.ofMillis(durationInMillisecond.toLong())
+
+        ScreenTimeMethod.scheduleBlock(
+          context,
+          scheduleId,
+          packagesName?.filterIsInstance<String>() ?: mutableListOf(),
+          startTime.toLong(),
+          duration,
+          recurring,
+          daysOfWeek?.filterIsInstance<Int>() ?: mutableListOf(),
+        ) { callback ->
+          result.success(callback)
+        }
+      }
+      MethodName.cancelScheduledBlock -> {
+        val args = call.arguments as Map<String, Any?>
+        val scheduleId = args[Argument.scheduleId] as String
+
+        ScreenTimeMethod.cancelScheduledBlock(
+          context,
+          scheduleId,
+        ) { callback ->
+          result.success(callback)
+        }
+      }
+      MethodName.getActiveSchedules -> {
+        ScreenTimeMethod.getActiveSchedules(
+          context,
+        ) { callback ->
+          result.success(callback)
+        }
       }
       MethodName.isOnBlockingApps -> {
         val response = ScreenTimeMethod.isOnBlockingApps(context)

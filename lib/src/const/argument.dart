@@ -13,4 +13,8 @@ class Argument {
   static const String lookbackTimeMs = 'lookbackTimeMs';
   static const String interval = 'interval';
   static const String permissionType = 'permissionType';
+
+  static const String scheduleId = 'scheduleId';
+  static const String recurring = 'recurring';
+  static const String daysOfWeek = 'daysOfWeek';
 }

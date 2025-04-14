@@ -2,29 +2,64 @@
 xmlns:tools="http://schemas.android.com/tools"
   package="com.solusibejo.screen_time">
 
+  <!-- Usage Stats Permission -->
   <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
+  
+  <!-- Core Permissions -->
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-  <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+  <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-  
-  <uses-permission android:name="android.permission.VIBRATE" />
-  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-  <uses-permission android:name="android.permission.CALL_PHONE" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+  
+  <!-- Alarm Permissions -->
   <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-<!--  <uses-permission android:name="android.permission.USE_EXACT_ALARM" android:minSdkVersion="33"/>-->
+  <uses-permission android:name="android.permission.USE_EXACT_ALARM" 
+        android:minSdkVersion="33"/>
 
   <application>
-    <receiver android:name=".receiver.BootReceiver" android:exported="false">
+    <!-- WorkManager Provider -->
+    <provider
+        android:name="androidx.startup.InitializationProvider"
+        android:authorities="${applicationId}.androidx-startup"
+        android:exported="false"
+        tools:node="merge">
+        <meta-data
+            android:name="androidx.work.WorkManagerInitializer"
+            android:value="androidx.startup"
+            tools:node="remove" />
+    </provider>
+
+    <!-- Boot Receiver -->
+    <receiver 
+        android:name=".receiver.BootReceiver" 
+        android:exported="false"
+        android:enabled="true">
       <intent-filter>
         <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.QUICKBOOT_POWERON" />
         <category android:name="android.intent.category.DEFAULT" />
       </intent-filter>
     </receiver>
-    <service android:name=".service.BlockAppService" />
-    <receiver android:name=".receiver.AlarmReceiver"/>
+
+    <!-- Block App Service -->
+    <service 
+        android:name=".service.BlockAppService"
+        android:exported="false"
+        android:enabled="true"
+        android:foregroundServiceType="specialUse" />
+
+    <!-- Alarm Receiver -->
+    <receiver 
+        android:name=".receiver.AlarmReceiver"
+        android:exported="false"
+        android:enabled="true">
+        <intent-filter>
+            <action android:name="com.solusibejo.screen_time.STOP_BLOCKING" />
+        </intent-filter>
+    </receiver>
   </application>
 </manifest>

@@ -80,6 +80,27 @@ class MockScreenTimePlatform
 
   @override
   Future<bool> get isOnBlockingApps => throw UnimplementedError();
+
+  @override
+  Future<bool?> cancelScheduledBlock(String scheduleId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getActiveSchedules() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool?> scheduleBlock(
+      {required String scheduleId,
+      required List<String> packagesName,
+      required DateTime startTime,
+      required Duration duration,
+      bool recurring = false,
+      List<int> daysOfWeek = const []}) {
+    throw UnimplementedError();
+  }
 }
 
 void main() {

@@ -1,14 +1,10 @@
-import 'package:screen_time/src/model/screen_time_permission_status.dart';
-
 import 'screen_time_platform_interface.dart';
+import 'src/model/screen_time_permission_status.dart';
+import 'src/model/screen_time_permission_type.dart';
 import 'src/model/app_usage.dart';
 import 'src/model/installed_app.dart';
 import 'src/model/monitoring_app_usage.dart';
-import 'src/model/screen_time_permission_type.dart';
 import 'src/model/usage_interval.dart';
-
-export 'src/const/method_name.dart';
-export 'src/const/argument.dart';
 export 'src/model/screen_time_permission_status.dart';
 export 'src/model/installed_app.dart';
 export 'src/model/app_category.dart';
@@ -19,6 +15,14 @@ export 'src/model/usage_interval.dart';
 export 'src/model/screen_time_permission_type.dart';
 
 class ScreenTime {
+  ScreenTime._();
+
+  static final ScreenTime _instance = ScreenTime._();
+
+  factory ScreenTime() {
+    return _instance;
+  }
+
   Future<List<InstalledApp>> installedApps({
     bool ignoreSystemApps = true,
   }) {
@@ -70,6 +74,7 @@ class ScreenTime {
     );
   }
 
+  /// Block apps for a specified duration
   Future<bool> blockApps({
     List<String> packagesName = const <String>[],
     required Duration duration,
@@ -80,9 +85,6 @@ class ScreenTime {
     );
   }
 
-  Future<bool> get isOnBlockingApps =>
-      ScreenTimePlatform.instance.isOnBlockingApps;
-
   Future<bool> unblockApps({
     List<String> packagesName = const <String>[],
   }) async {
@@ -91,9 +93,38 @@ class ScreenTime {
     );
   }
 
-  /// Start monitoring app usage with the specified schedule.
-  ///
-  /// Parameters:
+  Future<bool?> scheduleBlock({
+    required String scheduleId,
+    required List<String> packagesName,
+    required DateTime startTime,
+    required Duration duration,
+    bool recurring = false,
+    List<int> daysOfWeek = const [],
+  }) {
+    return ScreenTimePlatform.instance.scheduleBlock(
+      scheduleId: scheduleId,
+      packagesName: packagesName,
+      startTime: startTime,
+      duration: duration,
+      recurring: recurring,
+      daysOfWeek: daysOfWeek,
+    );
+  }
+
+  /// Cancel a scheduled block
+  Future<bool?> cancelScheduledBlock(String scheduleId) {
+    return ScreenTimePlatform.instance.cancelScheduledBlock(scheduleId);
+  }
+
+  /// Get all active block schedules
+  Future<Map<String, dynamic>?> getActiveSchedules() {
+    return ScreenTimePlatform.instance.getActiveSchedules();
+  }
+
+  /// Check if apps are currently being blocked
+  Future<bool> get isOnBlockingApps =>
+      ScreenTimePlatform.instance.isOnBlockingApps;
+
   /// - `startHour`: The hour to start monitoring (0-23).
   /// - `startMinute`: The minute to start monitoring (0-59).
   /// - `endHour`: The hour to end monitoring (0-23).

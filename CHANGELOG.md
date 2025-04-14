@@ -1,3 +1,8 @@
+## 0.7.0 - April 14, 2025
+* Block Specific Apps
+* Unblock Specific Apps
+* Check block is on going or not
+
 ## 0.6.1 - April 11, 2025
 * Add checker for is on blocking apps or not
 * Stop service on unblock

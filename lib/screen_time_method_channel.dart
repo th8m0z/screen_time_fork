@@ -121,6 +121,43 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
   }
 
   @override
+  Future<bool?> scheduleBlock({
+    required String scheduleId,
+    required List<String> packagesName,
+    required DateTime startTime,
+    required Duration duration,
+    bool recurring = false,
+    List<int> daysOfWeek = const [],
+  }) async {
+    final bool? result =
+        await methodChannel.invokeMethod<bool>(MethodName.scheduleBlock, {
+      Argument.scheduleId: scheduleId,
+      Argument.packagesName: packagesName,
+      Argument.startTimeInMillisecond: startTime.millisecondsSinceEpoch,
+      Argument.duration: duration.inMilliseconds,
+      Argument.recurring: recurring,
+      Argument.daysOfWeek: daysOfWeek,
+    });
+    return result;
+  }
+
+  @override
+  Future<bool?> cancelScheduledBlock(String scheduleId) async {
+    final bool? result = await methodChannel
+        .invokeMethod<bool>(MethodName.cancelScheduledBlock, {
+      Argument.scheduleId: scheduleId,
+    });
+    return result;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getActiveSchedules() async {
+    final Map<String, dynamic>? result = await methodChannel
+        .invokeMapMethod<String, dynamic>(MethodName.getActiveSchedules);
+    return result;
+  }
+
+  @override
   Future<bool> get isOnBlockingApps async =>
       await methodChannel.invokeMethod<bool>(MethodName.isOnBlockingApps) ??
       false;

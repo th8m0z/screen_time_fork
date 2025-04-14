@@ -84,6 +84,26 @@ abstract class ScreenTimePlatform extends PlatformInterface {
   }) =>
       throw UnimplementedError('unblockApps() has not been implemented.');
 
+  Future<bool?> scheduleBlock({
+    required String scheduleId,
+    required List<String> packagesName,
+    required DateTime startTime,
+    required Duration duration,
+    bool recurring = false,
+    List<int> daysOfWeek = const [],
+  }) {
+    throw UnimplementedError('scheduleBlock() has not been implemented.');
+  }
+
+  Future<bool?> cancelScheduledBlock(String scheduleId) {
+    throw UnimplementedError(
+        'cancelScheduledBlock() has not been implemented.');
+  }
+
+  Future<Map<String, dynamic>?> getActiveSchedules() {
+    throw UnimplementedError('getActiveSchedules() has not been implemented.');
+  }
+
   /// Start monitoring app usage with the specified schedule.
   ///
   /// Parameters:

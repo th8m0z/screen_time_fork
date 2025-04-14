@@ -25,18 +25,21 @@ import com.solusibejo.screen_time.const.Field
 import com.solusibejo.screen_time.const.ScreenTimePermissionStatus
 import com.solusibejo.screen_time.const.ScreenTimePermissionType
 import com.solusibejo.screen_time.const.UsageInterval
+import com.solusibejo.screen_time.manager.BlockScheduleManager
+import com.solusibejo.screen_time.model.BlockSchedule
+import com.solusibejo.screen_time.receiver.AlarmReceiver
 import com.solusibejo.screen_time.service.AppMonitoringService
 import com.solusibejo.screen_time.service.BlockAppService
 import com.solusibejo.screen_time.util.ApplicationInfoUtil
-import com.solusibejo.screen_time.util.UsageStatsWorker
 import com.solusibejo.screen_time.util.IntExtension.timeInString
 import com.solusibejo.screen_time.util.ServiceUtil
+import com.solusibejo.screen_time.util.UsageStatsWorker
 import io.flutter.Log
 import java.io.ByteArrayOutputStream
 import java.time.Duration
+import java.time.Instant
 
 object ScreenTimeMethod {
-    private const val QUERY_ALL_PACKAGES_REQUEST_CODE = 2001
     /**
      * Retrieves a list of all installed applications on the device with their details.
      *
@@ -423,19 +426,138 @@ object ScreenTimeMethod {
         duration: Duration,
         sharedPreferences: SharedPreferences,
     ): Boolean {
-        val editor = sharedPreferences.edit()
-        editor.putBoolean("Blocking", true)
-        editor.putBoolean("isBlocking", true)
-        editor.apply()
+        if (packagesName.isEmpty()) return false
 
-        val intent = Intent(context, BlockAppService::class.java)
-        context.startForegroundService(intent)
+        try {
+            // Start BlockAppService
+            val intent = Intent(context, BlockAppService::class.java).apply {
+                putStringArrayListExtra("packages", ArrayList(packagesName))
+                putExtra("duration", duration.toMillis())
+            }
+            context.startForegroundService(intent)
 
-        return ServiceUtil.isRunning(context, BlockAppService::class.java.name)
+            // Save block state to SharedPreferences
+            with(sharedPreferences.edit()) {
+                putLong(BlockAppService.KEY_BLOCK_END_TIME, System.currentTimeMillis() + duration.toMillis())
+                putStringSet(BlockAppService.KEY_BLOCKED_PACKAGES, packagesName.toSet())
+                putBoolean(BlockAppService.KEY_IS_BLOCKING, true)
+                apply()
+            }
+
+            return true
+        } catch (e: Exception) {
+            Log.e("ScreenTimeMethod", "Error starting block", e)
+            return false
+        }
     }
 
+    /**
+     * Schedule a block for specific apps at a future time
+     */
+    fun scheduleBlock(
+        context: Context,
+        scheduleId: String,
+        packagesName: List<String>,
+        startTime: Long, // Unix timestamp in milliseconds
+        duration: Duration,
+        recurring: Boolean = false,
+        daysOfWeek: List<Int> = emptyList(), // Calendar.MONDAY, Calendar.TUESDAY, etc.
+        callback: (Boolean) -> Unit
+    ) {
+        Thread {
+            try {
+                val manager = BlockScheduleManager(context)
+                
+                val schedule = BlockSchedule(
+                    id = scheduleId,
+                    packages = packagesName,
+                    startTime = Instant.ofEpochMilli(startTime),
+                    duration = duration,
+                    isRecurring = recurring,
+                    daysOfWeek = daysOfWeek
+                )
+
+                manager.applySchedule(schedule)
+                callback(true)
+            } catch (e: Exception) {
+                Log.e("ScreenTimeMethod", "Error scheduling block", e)
+                callback(false)
+            }
+        }.start()
+    }
+
+    /**
+     * Cancel a scheduled block
+     */
+    fun cancelScheduledBlock(
+        context: Context,
+        scheduleId: String,
+        callback: (Boolean) -> Unit
+    ) {
+        Thread {
+            try {
+                val manager = BlockScheduleManager(context)
+                manager.cancelSchedule(scheduleId)
+                callback(true)
+            } catch (e: Exception) {
+                Log.e("ScreenTimeMethod", "Error canceling schedule", e)
+                callback(false)
+            }
+        }.start()
+    }
+
+    /**
+     * Get all active block schedules
+     */
+    fun getActiveSchedules(
+        context: Context,
+        callback: (Map<String, Any>) -> Unit
+    ) {
+        Thread {
+            try {
+                val manager = BlockScheduleManager(context)
+                val schedules = manager.getActiveSchedules()
+
+                val schedulesMap = schedules.map { schedule ->
+                    mapOf(
+                        "id" to schedule.id,
+                        "packages" to schedule.packages,
+                        "startTime" to schedule.startTime.toEpochMilli(),
+                        "duration" to schedule.duration.toMillis(),
+                        "isRecurring" to schedule.isRecurring,
+                        "daysOfWeek" to schedule.daysOfWeek
+                    )
+                }
+
+                callback(mutableMapOf(
+                    Field.status to true,
+                    Field.data to schedulesMap
+                ))
+            } catch (e: Exception) {
+                callback(mutableMapOf(
+                    Field.status to false,
+                    Field.error to (e.localizedMessage ?: "Error getting schedules")
+                ))
+            }
+        }.start()
+    }
+
+
+
     fun isOnBlockingApps(context: Context): Boolean {
-        return ServiceUtil.isRunning(context, BlockAppService::class.java.name)
+        val sharedPreferences = context.getSharedPreferences(
+            BlockAppService.PREF_NAME,
+            Context.MODE_PRIVATE
+        )
+        
+        val isBlocking = sharedPreferences.getBoolean(BlockAppService.KEY_IS_BLOCKING, false)
+        val blockEndTime = sharedPreferences.getLong(BlockAppService.KEY_BLOCK_END_TIME, 0)
+        val blockedPackages = sharedPreferences.getStringSet(BlockAppService.KEY_BLOCKED_PACKAGES, setOf())
+        
+        // Check if blocking is active and not expired
+        return isBlocking && 
+               blockEndTime > System.currentTimeMillis() && 
+               !blockedPackages.isNullOrEmpty()
     }
 
     fun unblockApps(
@@ -443,14 +565,22 @@ object ScreenTimeMethod {
         packagesName: List<String>,
         sharedPreferences: SharedPreferences,
     ): Boolean {
-        val editor = sharedPreferences.edit()
-        editor.putBoolean("Blocking", false)
-        editor.apply()
+        // Cancel scheduled unblock
+        AlarmReceiver.cancelUnblock(context)
 
+        // Clear block state
+        sharedPreferences.edit().apply {
+            putBoolean(BlockAppService.KEY_IS_BLOCKING, false)
+            putStringSet(BlockAppService.KEY_BLOCKED_PACKAGES, setOf())
+            putLong(BlockAppService.KEY_BLOCK_END_TIME, 0)
+            apply()
+        }
+
+        // Stop service
         val intent = Intent(context, BlockAppService::class.java)
         context.stopService(intent)
 
-        return  true
+        return true
     }
 
     /**

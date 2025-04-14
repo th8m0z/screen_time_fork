@@ -157,7 +157,13 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                     if (isOnBlocking) {
                       await _screenTime.unblockApps();
                     } else {
-                      await _screenTime.blockApps(duration: Duration(hours: 1));
+                      await _screenTime.blockApps(
+                        packagesName:
+                            _selectedApp
+                                .map((app) => app.packageName ?? '')
+                                .toList(),
+                        duration: Duration(hours: 1),
+                      );
                     }
 
                     if (!modalCtx.mounted) return;

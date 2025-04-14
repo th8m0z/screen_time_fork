@@ -9,9 +9,14 @@ object Argument {
     const val ignoreSystemApps = "ignoreSystemApps"
     const val packagesName = "packagesName"
     const val duration = "duration"
-
+    
     const val startHour = "startHour"
     const val startMinute = "startMinute"
     const val endHour = "endHour"
     const val endMinute = "endMinute"
+
+    const val scheduleId = "scheduleId"
+    const val startTime = "startTime"
+    const val recurring = "recurring"
+    const val daysOfWeek = "daysOfWeek"
 }

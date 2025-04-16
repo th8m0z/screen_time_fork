@@ -1,6 +1,8 @@
 ## 0.7.2 - April 14, 2025
-* Add request permission notification
+* Add request permission notification required for Android > 13
 * Add check permission notification
+* Remove query all packages permission
+* Remove check permission query all packages
 
 ## 0.7.1 - April 14, 2025
 * Fix usage time in duration

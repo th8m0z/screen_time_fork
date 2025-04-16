@@ -155,26 +155,6 @@ class _MainPageState extends State<MainPage> {
                                     ListTile(
                                       title: Text(
                                         ScreenTimePermissionType
-                                            .queryAllPackages
-                                            .name,
-                                      ),
-                                      trailing: Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        final ctx = context;
-                                        final permission = await _screenTime
-                                            .requestPermission(
-                                              permissionType:
-                                                  ScreenTimePermissionType
-                                                      .queryAllPackages,
-                                            );
-
-                                        if (!ctx.mounted) return;
-                                        Navigator.pop(ctx, permission);
-                                      },
-                                    ),
-                                    ListTile(
-                                      title: Text(
-                                        ScreenTimePermissionType
                                             .notification
                                             .name,
                                       ),

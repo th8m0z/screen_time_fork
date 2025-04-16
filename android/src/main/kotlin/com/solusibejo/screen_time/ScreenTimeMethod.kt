@@ -234,22 +234,6 @@ object ScreenTimeMethod {
                     false
                 }
             }
-            ScreenTimePermissionType.QUERY_ALL_PACKAGES -> {
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                        intent.data = Uri.parse("package:${context.packageName}")
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                        context.startActivity(intent)
-                        true
-                    } else {
-                        false // Permission not needed for Android < R
-                    }
-                } catch (exception: Exception) {
-                    exception.localizedMessage?.let { Log.e("requestPermission QUERY_ALL_PACKAGES", it) }
-                    false
-                }
-            }
             ScreenTimePermissionType.NOTIFICATION -> {
                 try {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -319,25 +303,6 @@ object ScreenTimeMethod {
                     ScreenTimePermissionStatus.APPROVED
                 } else {
                     ScreenTimePermissionStatus.DENIED
-                }
-            }
-            ScreenTimePermissionType.QUERY_ALL_PACKAGES -> {
-                return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    val permission = context.checkSelfPermission(Manifest.permission.QUERY_ALL_PACKAGES)
-                    when(permission){
-                        PackageManager.PERMISSION_GRANTED -> {
-                            ScreenTimePermissionStatus.APPROVED
-                        }
-                        PackageManager.PERMISSION_DENIED -> {
-                            ScreenTimePermissionStatus.DENIED
-                        }
-                        else -> {
-                            ScreenTimePermissionStatus.NOT_DETERMINED
-                        }
-                    }
-                }
-                else {
-                    ScreenTimePermissionStatus.APPROVED
                 }
             }
             ScreenTimePermissionType.NOTIFICATION -> {

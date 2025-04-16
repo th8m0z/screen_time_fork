@@ -174,6 +174,7 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                                   .map((app) => app.packageName ?? '')
                                   .toList(),
                           duration: selectedDuration,
+                          layoutName: 'block_overlay', // You can customize this name for different layouts
                         );
                       }
                     }

@@ -131,6 +131,7 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
         val args = call.arguments as Map<String, Any?>
         val packagesName = args[Argument.packagesName] as List<*>?
         val durationInMillisecond = args[Argument.duration] as Int
+        val layoutName = args[Argument.layoutName] as String?
 
         val duration = Duration.ofMillis(durationInMillisecond.toLong())
         val response = ScreenTimeMethod.blockApps(
@@ -138,6 +139,7 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
           packagesName?.filterIsInstance<String>() ?: mutableListOf(),
           duration,
           sharedPreferences,
+          layoutName,
         )
         result.success(response)
       }

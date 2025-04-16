@@ -445,6 +445,7 @@ object ScreenTimeMethod {
         packagesName: List<String>,
         duration: Duration,
         sharedPreferences: SharedPreferences,
+        layoutName: String? = null,
     ): Boolean {
         if (packagesName.isEmpty()) return false
 
@@ -461,9 +462,9 @@ object ScreenTimeMethod {
                 putExtra("duration", duration.toMillis())
                 
                 // Pass the example app's package name to load the layout from
-                val exampleAppPackage = context.packageName
-                putExtra("layoutPackage", exampleAppPackage)
-                putExtra("layoutName", "block_overlay")
+                val callerPackageName = context.packageName
+                putExtra("layoutPackage", callerPackageName)
+                putExtra("layoutName", layoutName ?: "block_overlay")
             }
 
             try {

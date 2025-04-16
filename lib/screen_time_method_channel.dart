@@ -109,10 +109,12 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
   Future<bool> blockApps({
     List<String> packagesName = const <String>[],
     required Duration duration,
+    required String layoutName,
   }) async {
     final arguments = <Object?, Object?>{
       Argument.packagesName: packagesName,
       Argument.duration: duration.inMilliseconds,
+      Argument.layoutName: layoutName,
     };
 
     return await methodChannel.invokeMethod<bool>(

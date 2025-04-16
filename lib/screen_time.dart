@@ -76,13 +76,21 @@ class ScreenTime {
   }
 
   /// Block apps for a specified duration
+  ///
+  /// Parameters:
+  /// - `packagesName`: List of package names to block
+  /// - `duration`: How long to block the apps
+  /// - `layoutName`: Optional custom layout name to use for the block overlay
+  ///   This allows for customizing the UI of the block screen
   Future<bool> blockApps({
     List<String> packagesName = const <String>[],
     required Duration duration,
+    required String layoutName,
   }) async {
     return await ScreenTimePlatform.instance.blockApps(
       packagesName: packagesName,
       duration: duration,
+      layoutName: layoutName,
     );
   }
 

@@ -9,7 +9,8 @@ object Argument {
     const val ignoreSystemApps = "ignoreSystemApps"
     const val packagesName = "packagesName"
     const val duration = "duration"
-    
+    const val layoutName = "layoutName"
+
     const val startHour = "startHour"
     const val startMinute = "startMinute"
     const val endHour = "endHour"

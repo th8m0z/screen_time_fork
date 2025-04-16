@@ -63,12 +63,17 @@ class BlockAppService : Service() {
 
 
     private fun startBlockingApps() {
+        // Log the packages we're blocking and until when
+        Log.d(TAG, "Starting blocking apps: ${blockedPackages.joinToString(", ")} until ${blockEndTime}")
+        Log.d(TAG, "Current time: ${System.currentTimeMillis()}, remaining: ${blockEndTime - System.currentTimeMillis()} ms")
+        
         serviceScope.launch {
             try {
                 while (isActive && System.currentTimeMillis() < blockEndTime) {
                     checkAndBlockApp()
                     delay(CHECK_INTERVAL)
                 }
+                Log.d(TAG, "Block time ended, stopping service")
                 stopSelf()
             } catch (e: Exception) {
                 Log.e(TAG, "Error in blocking loop", e)
@@ -80,18 +85,33 @@ class BlockAppService : Service() {
     private suspend fun checkAndBlockApp() = withContext(Dispatchers.Default) {
         if (!Settings.canDrawOverlays(this@BlockAppService) || 
             !hasUsageStatsPermission(this@BlockAppService)) {
+            Log.e(TAG, "Missing required permissions, stopping service")
             stopBlocking()
             return@withContext
         }
 
         val foregroundApp = getForegroundApp()
+        Log.d(TAG, "Current foreground app: $foregroundApp")
+        
         withContext(Dispatchers.Main) {
             if (foregroundApp != null && 
                 blockedPackages.contains(foregroundApp) && 
                 !isDeviceLocked(this@BlockAppService)) {
+                Log.d(TAG, "Showing overlay for blocked app: $foregroundApp")
                 showOverlay()
             } else {
-                hideOverlay()
+                // Only hide if we're not blocking the current app
+                if (foregroundApp != null && !blockedPackages.contains(foregroundApp)) {
+                    Log.d(TAG, "Hiding overlay, current app not blocked: $foregroundApp")
+                    hideOverlay()
+                } else if (isDeviceLocked(this@BlockAppService)) {
+                    Log.d(TAG, "Hiding overlay, device is locked")
+                    hideOverlay()
+                } else if (foregroundApp == null) {
+                    // If we can't detect the foreground app, don't change the overlay state
+                    // This prevents the overlay from disappearing when app detection fails temporarily
+                    Log.d(TAG, "Could not detect foreground app, maintaining current overlay state")
+                }
             }
         }
     }
@@ -100,8 +120,10 @@ class BlockAppService : Service() {
         try {
             val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val endTime = System.currentTimeMillis()
-            val beginTime = endTime - 1000 * 10 // Last 10 seconds
+            // Increase the time window to improve detection reliability
+            val beginTime = endTime - 1000 * 30 // Last 30 seconds
 
+            // First try to get events
             val usageEvents = usageStatsManager.queryEvents(beginTime, endTime)
             var lastForegroundEvent: UsageEvents.Event? = null
 
@@ -113,7 +135,24 @@ class BlockAppService : Service() {
                 }
             }
 
-            lastForegroundEvent?.packageName
+            // If we found a foreground event, return its package name
+            if (lastForegroundEvent != null) {
+                return@withContext lastForegroundEvent.packageName
+            }
+            
+            // Fallback: If no events found, try to get usage stats
+            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, beginTime, endTime)
+            if (stats.isNotEmpty()) {
+                // Sort by last time used
+                val mostRecentApp = stats.maxByOrNull { it.lastTimeUsed }
+                if (mostRecentApp != null) {
+                    Log.d(TAG, "Using fallback detection method, found: ${mostRecentApp.packageName}")
+                    return@withContext mostRecentApp.packageName
+                }
+            }
+            
+            // If we couldn't find anything, return null
+            null
         } catch (e: Exception) {
             Log.e(TAG, "Error getting foreground app", e)
             null
@@ -121,12 +160,22 @@ class BlockAppService : Service() {
     }
 
     private fun showOverlay() {
-        if (!isOverlayDisplayed && overlayView?.windowToken == null) {
+        if (!isOverlayDisplayed || overlayView?.windowToken == null) {
             try {
+                // If the view was already added but the token is null, remove it first
+                if (isOverlayDisplayed) {
+                    try {
+                        windowManager?.removeView(overlayView)
+                    } catch (e: Exception) {
+                        // Ignore, view might not be attached
+                    }
+                }
+                
                 windowManager?.addView(overlayView, params)
                 isOverlayDisplayed = true
+                Log.d(TAG, "Overlay displayed successfully")
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "Error showing overlay", e)
             }
         }
     }
@@ -151,18 +200,40 @@ class BlockAppService : Service() {
      */
     private fun loadOverlayView(packageName: String?, layoutName: String): View {
         try {
-            if (packageName != null) {
-                // Try to load the layout from the specified package
-                val packageContext = createPackageContext(packageName, Context.CONTEXT_IGNORE_SECURITY)
-                val layoutId = packageContext.resources.getIdentifier(layoutName, "layout", packageName)
-                
+            // First try to load from our own package (the plugin)
+            try {
+                val layoutId = resources.getIdentifier(layoutName, "layout", this.packageName)
                 if (layoutId != 0) {
-                    Log.d(TAG, "Loading layout from package: $packageName, layout: $layoutName")
-                    return LayoutInflater.from(packageContext).inflate(layoutId, null)
+                    Log.d(TAG, "Loading layout from plugin package: ${this.packageName}, layout: $layoutName")
+                    return LayoutInflater.from(this).inflate(layoutId, null)
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "Could not load layout from plugin package: ${e.message}")
+            }
+            
+            // Then try to load from the specified package
+            if (packageName != null && packageName != this.packageName) {
+                try {
+                    // Create a context for the package with more permissive flags
+                    val flags = Context.CONTEXT_IGNORE_SECURITY or Context.CONTEXT_INCLUDE_CODE
+                    val packageContext = createPackageContext(packageName, flags)
+                    val layoutId = packageContext.resources.getIdentifier(layoutName, "layout", packageName)
+                    
+                    if (layoutId != 0) {
+                        Log.d(TAG, "Loading layout from host package: $packageName, layout: $layoutName")
+                        
+                        // Use the package context's layout inflater to ensure proper resource resolution
+                        val inflater = LayoutInflater.from(packageContext)
+                        return inflater.inflate(layoutId, null)
+                    } else {
+                        Log.d(TAG, "Layout resource not found in package: $packageName, layout: $layoutName")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error accessing package context: $packageName", e)
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error loading external layout", e)
+            Log.e(TAG, "Error in loadOverlayView", e)
         }
         
         // Fallback to creating a view programmatically
@@ -188,6 +259,28 @@ class BlockAppService : Service() {
         )
         params.gravity = android.view.Gravity.CENTER
         frameLayout.addView(textView, params)
+        
+        // Add a button to close the overlay (for debugging purposes)
+        val closeButton = android.widget.Button(this)
+        closeButton.text = "Close"
+        closeButton.setOnClickListener {
+            try {
+                if (isOverlayDisplayed && overlayView?.windowToken != null) {
+                    windowManager?.removeView(overlayView)
+                    isOverlayDisplayed = false
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing overlay", e)
+            }
+        }
+        
+        val buttonParams = android.widget.FrameLayout.LayoutParams(
+            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+        )
+        buttonParams.gravity = android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL
+        buttonParams.bottomMargin = 50
+        frameLayout.addView(closeButton, buttonParams)
         
         return frameLayout
     }

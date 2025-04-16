@@ -142,6 +142,56 @@ class BlockAppService : Service() {
         }
     }
 
+    /**
+     * Loads an overlay view from a specified package or creates a default one programmatically
+     * 
+     * @param packageName The package name containing the layout resource (e.g., "com.example.app")
+     * @param layoutName The name of the layout resource without the extension (e.g., "block_overlay")
+     * @return The inflated or created View
+     */
+    private fun loadOverlayView(packageName: String?, layoutName: String): View {
+        try {
+            if (packageName != null) {
+                // Try to load the layout from the specified package
+                val packageContext = createPackageContext(packageName, Context.CONTEXT_IGNORE_SECURITY)
+                val layoutId = packageContext.resources.getIdentifier(layoutName, "layout", packageName)
+                
+                if (layoutId != 0) {
+                    Log.d(TAG, "Loading layout from package: $packageName, layout: $layoutName")
+                    return LayoutInflater.from(packageContext).inflate(layoutId, null)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading external layout", e)
+        }
+        
+        // Fallback to creating a view programmatically
+        Log.d(TAG, "Using fallback programmatic layout")
+        return createFallbackOverlayView()
+    }
+    
+    /**
+     * Creates a simple programmatic overlay view as a fallback
+     */
+    private fun createFallbackOverlayView(): View {
+        val frameLayout = android.widget.FrameLayout(this)
+        frameLayout.setBackgroundColor(android.graphics.Color.BLACK)
+        
+        val textView = android.widget.TextView(this)
+        textView.text = "This app is currently blocked"
+        textView.setTextColor(android.graphics.Color.WHITE)
+        textView.textSize = 24f
+        
+        val params = android.widget.FrameLayout.LayoutParams(
+            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+        )
+        params.gravity = android.view.Gravity.CENTER
+        frameLayout.addView(textView, params)
+        
+        return frameLayout
+    }
+    
     private fun stopBlocking() {
         try {
             // Remove overlay if it exists
@@ -212,6 +262,8 @@ class BlockAppService : Service() {
         intent?.let { nonNullIntent ->
             val packages = nonNullIntent.getStringArrayListExtra("packages")
             val duration = nonNullIntent.getLongExtra("duration", 0)
+            val customLayoutPackage = nonNullIntent.getStringExtra("layoutPackage")
+            val customLayoutName = nonNullIntent.getStringExtra("layoutName") ?: "block_overlay"
             
             packages?.let { packageList ->
                 blockedPackages.addAll(packageList)
@@ -219,7 +271,9 @@ class BlockAppService : Service() {
             }
         }
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        overlayView = LayoutInflater.from(this).inflate(R.layout.block_overlay, null)
+        
+        // Try to load the layout from the specified package or fall back to a simple programmatic layout
+        overlayView = loadOverlayView(intent?.getStringExtra("layoutPackage"), intent?.getStringExtra("layoutName") ?: "block_overlay")
 
         val sharedPreferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         blockEndTime = sharedPreferences.getLong(KEY_BLOCK_END_TIME, 0)

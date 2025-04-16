@@ -459,6 +459,11 @@ object ScreenTimeMethod {
             val intent = Intent(context, BlockAppService::class.java).apply {
                 putStringArrayListExtra("packages", ArrayList(packagesName))
                 putExtra("duration", duration.toMillis())
+                
+                // Pass the example app's package name to load the layout from
+                val exampleAppPackage = context.packageName
+                putExtra("layoutPackage", exampleAppPackage)
+                putExtra("layoutName", "block_overlay")
             }
 
             try {

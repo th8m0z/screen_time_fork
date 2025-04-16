@@ -60,8 +60,8 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
     final drawOverlayPermission = await _screenTime.permissionStatus(
       permissionType: ScreenTimePermissionType.drawOverlay,
     );
-    final queryAllPackagesPermission = await _screenTime.permissionStatus(
-      permissionType: ScreenTimePermissionType.queryAllPackages,
+    final notificationPermission = await _screenTime.permissionStatus(
+      permissionType: ScreenTimePermissionType.notification,
     );
     final accessibiltySettingsPermission = await _screenTime.permissionStatus(
       permissionType: ScreenTimePermissionType.accessibilitySettings,
@@ -140,10 +140,10 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                   (appUsagePermission == ScreenTimePermissionStatus.approved &&
                           drawOverlayPermission ==
                               ScreenTimePermissionStatus.approved &&
-                          queryAllPackagesPermission ==
+                          notificationPermission ==
                               ScreenTimePermissionStatus.approved)
                       ? 'Block Apps'
-                      : 'Need Usage Stat, Request Draw Overlay, and Query All Packages',
+                      : 'Need Usage Stat, Request Draw Overlay, and Notification',
                 ),
                 onTap: () async {
                   final modalCtx = modalContext;
@@ -151,7 +151,7 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                           ScreenTimePermissionStatus.approved &&
                       drawOverlayPermission ==
                           ScreenTimePermissionStatus.approved &&
-                      queryAllPackagesPermission ==
+                      notificationPermission ==
                           ScreenTimePermissionStatus.approved) {
                     final isOnBlocking = await _screenTime.isOnBlockingApps;
                     if (isOnBlocking) {

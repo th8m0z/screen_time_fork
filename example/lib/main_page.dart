@@ -155,7 +155,7 @@ class _MainPageState extends State<MainPage> {
                                     ListTile(
                                       title: Text(
                                         ScreenTimePermissionType
-                                            .queryAllPackages
+                                            .notification
                                             .name,
                                       ),
                                       trailing: Icon(Icons.chevron_right),
@@ -165,7 +165,7 @@ class _MainPageState extends State<MainPage> {
                                             .requestPermission(
                                               permissionType:
                                                   ScreenTimePermissionType
-                                                      .queryAllPackages,
+                                                      .notification,
                                             );
 
                                         if (!ctx.mounted) return;

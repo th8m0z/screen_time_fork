@@ -67,6 +67,8 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
       permissionType: ScreenTimePermissionType.accessibilitySettings,
     );
 
+    final isOnBlocking = await _screenTime.isOnBlockingApps;
+
     if (!ctx.mounted) return;
     showModalBottomSheet(
       context: ctx,
@@ -142,7 +144,9 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                               ScreenTimePermissionStatus.approved &&
                           notificationPermission ==
                               ScreenTimePermissionStatus.approved)
-                      ? 'Block Apps'
+                      ? (isOnBlocking)
+                          ? 'Stop Block'
+                          : 'Block Apps'
                       : 'Need Usage Stat, Request Draw Overlay, and Notification',
                 ),
                 onTap: () async {
@@ -153,17 +157,25 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                           ScreenTimePermissionStatus.approved &&
                       notificationPermission ==
                           ScreenTimePermissionStatus.approved) {
-                    final isOnBlocking = await _screenTime.isOnBlockingApps;
                     if (isOnBlocking) {
                       await _screenTime.unblockApps();
                     } else {
-                      await _screenTime.blockApps(
-                        packagesName:
-                            _selectedApp
-                                .map((app) => app.packageName ?? '')
-                                .toList(),
-                        duration: Duration(hours: 1),
+                      // Show duration selection dialog
+                      if (!modalCtx.mounted) return;
+                      final selectedDuration = await _showDurationPickerDialog(
+                        modalCtx,
                       );
+
+                      // If user cancels the dialog, selectedDuration will be null
+                      if (selectedDuration != null) {
+                        await _screenTime.blockApps(
+                          packagesName:
+                              _selectedApp
+                                  .map((app) => app.packageName ?? '')
+                                  .toList(),
+                          duration: selectedDuration,
+                        );
+                      }
                     }
 
                     if (!modalCtx.mounted) return;
@@ -249,6 +261,93 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
               const SizedBox(width: 16),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  /// Shows a dialog for selecting duration for app blocking
+  Future<Duration?> _showDurationPickerDialog(BuildContext context) async {
+    int hours = 1;
+    int minutes = 0;
+
+    return showDialog<Duration>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Select Blocking Duration'),
+          content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Hours:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.remove),
+                            onPressed:
+                                hours > 0
+                                    ? () => setState(() => hours--)
+                                    : null,
+                          ),
+                          Text('$hours'),
+                          IconButton(
+                            icon: Icon(Icons.add),
+                            onPressed: () => setState(() => hours++),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Minutes:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.remove),
+                            onPressed:
+                                minutes > 0
+                                    ? () => setState(() => minutes -= 1)
+                                    : null,
+                          ),
+                          Text('$minutes'),
+                          IconButton(
+                            icon: Icon(Icons.add),
+                            onPressed:
+                                minutes < 55
+                                    ? () => setState(() => minutes += 1)
+                                    : null,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(
+                  context,
+                ).pop(Duration(hours: hours, minutes: minutes));
+              },
+            ),
+          ],
         );
       },
     );

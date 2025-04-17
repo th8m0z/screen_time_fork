@@ -40,6 +40,11 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
   private lateinit var sharedPreferences: SharedPreferences
   private var eventSink: EventChannel.EventSink? = null
 
+  companion object {
+    const val PREF_NAME = "screen_time"
+    const val PACKAGE_NAME = "com.solusibejo.screen_time"
+  }
+
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "screen_time")
     channel.setMethodCallHandler(this)
@@ -131,11 +136,11 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
         val args = call.arguments as Map<String, Any?>
         val packagesName = args[Argument.packagesName] as List<*>?
         val durationInMillisecond = args[Argument.duration] as Int
+        val duration = Duration.ofMillis(durationInMillisecond.toLong())
         val layoutName = args[Argument.layoutName] as String?
         val notificationTitle = args[Argument.notificationTitle] as String?
         val notificationText = args[Argument.notificationText] as String?
 
-        val duration = Duration.ofMillis(durationInMillisecond.toLong())
         val response = ScreenTimeMethod.blockApps(
           context,
           packagesName?.filterIsInstance<String>() ?: mutableListOf(),

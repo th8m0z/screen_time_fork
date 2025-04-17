@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:screen_time/screen_time.dart';
+import 'package:screen_time_example/duration_ext.dart';
 
 import 'app_monitoring_settings.dart';
 import 'app_usage_page.dart';
@@ -168,15 +169,17 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
 
                       // If user cancels the dialog, selectedDuration will be null
                       if (selectedDuration != null) {
+                        final apps =
+                            _selectedApp
+                                .map((app) => app.packageName ?? '')
+                                .toList();
                         await _screenTime.blockApps(
-                          packagesName:
-                              _selectedApp
-                                  .map((app) => app.packageName ?? '')
-                                  .toList(),
+                          packagesName: apps,
                           duration: selectedDuration,
                           layoutName: 'block_overlay', // Custom overlay layout
-                          notificationTitle: 'App Blocker Active',
-                          notificationText: 'Blocking {count} apps for {minutes} more minutes',
+                          notificationTitle: 'Screen Time Example Active',
+                          notificationText:
+                              'Blocking ${apps.length} apps for ${selectedDuration.inString} now.',
                         );
                       }
                     }

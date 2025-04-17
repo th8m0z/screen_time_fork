@@ -18,6 +18,8 @@ import android.view.View
 import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import com.solusibejo.screen_time.R
+import com.solusibejo.screen_time.ScreenTimePlugin
+import com.solusibejo.screen_time.const.Argument
 import com.solusibejo.screen_time.worker.ServiceMonitorWorker
 import com.solusibejo.screen_time.worker.ServiceRestartWorker
 import kotlinx.coroutines.CoroutineScope
@@ -41,10 +43,10 @@ class BlockAppService : Service() {
         const val CHANNEL_ID = "BlockAppService_Channel_ID"
         const val NOTIFICATION_ID = 1
         private const val CHECK_INTERVAL = 1000L // 1 second
-        const val PREF_NAME = "screen_time"
         const val KEY_BLOCK_END_TIME = "block_end_time"
         const val KEY_BLOCKED_PACKAGES = "blocked_packages"
         const val KEY_IS_BLOCKING = "isBlocking"
+        const val DEFAULT_LAYOUT_NAME = "block_overlay"
         private const val TAG = "BlockAppService"
         
         // WorkManager tags
@@ -52,9 +54,8 @@ class BlockAppService : Service() {
         private const val SERVICE_RESTART_TAG = "block_app_service_restart"
         
         // Intent actions
-        const val ACTION_START_BLOCKING = "com.solusibejo.screen_time.START_BLOCKING"
-        const val ACTION_STOP_BLOCKING = "com.solusibejo.screen_time.STOP_BLOCKING"
-        
+        const val ACTION_START_BLOCKING = "${ScreenTimePlugin.PACKAGE_NAME}.START_BLOCKING"
+
         // Check if service is running
         fun isServiceRunning(context: Context): Boolean {
             val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
@@ -277,7 +278,7 @@ class BlockAppService : Service() {
         frameLayout.setBackgroundColor(android.graphics.Color.BLACK)
         
         val textView = android.widget.TextView(this)
-        textView.text = "This app is currently blocked"
+        textView.text = getString(R.string.notification_title)
         textView.setTextColor(android.graphics.Color.WHITE)
         textView.textSize = 24f
         
@@ -290,7 +291,7 @@ class BlockAppService : Service() {
         
         // Add a button to close the overlay (for debugging purposes)
         val closeButton = android.widget.Button(this)
-        closeButton.text = "Close"
+        closeButton.text = getString(R.string.close)
         closeButton.setOnClickListener {
             try {
                 if (isOverlayDisplayed && overlayView?.windowToken != null) {
@@ -329,7 +330,7 @@ class BlockAppService : Service() {
             serviceJob.cancel()
             
             // Clear shared preferences
-            val sharedPreferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            val sharedPreferences = getSharedPreferences(ScreenTimePlugin.PREF_NAME, Context.MODE_PRIVATE)
             sharedPreferences.edit().apply {
                 putBoolean(KEY_IS_BLOCKING, false)
                 putStringSet(KEY_BLOCKED_PACKAGES, setOf())
@@ -364,7 +365,7 @@ class BlockAppService : Service() {
             overlayView = null
             
             // Check if we're still in blocking period
-            val sharedPreferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            val sharedPreferences = getSharedPreferences(ScreenTimePlugin.PREF_NAME, Context.MODE_PRIVATE)
             val isBlocking = sharedPreferences.getBoolean(KEY_IS_BLOCKING, false)
             val blockEndTime = sharedPreferences.getLong(KEY_BLOCK_END_TIME, 0)
             
@@ -477,17 +478,15 @@ class BlockAppService : Service() {
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         
         // Load shared preferences first to ensure we have the latest state
-        val sharedPreferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        val sharedPreferences = getSharedPreferences(ScreenTimePlugin.PREF_NAME, Context.MODE_PRIVATE)
         
         // Get packages and duration from intent
         intent?.let { nonNullIntent ->
-            val packages = nonNullIntent.getStringArrayListExtra("packages")
-            val duration = nonNullIntent.getLongExtra("duration", 0)
-            val customLayoutPackage = nonNullIntent.getStringExtra("layoutPackage")
-            val customLayoutName = nonNullIntent.getStringExtra("layoutName") ?: "block_overlay"
-            
+            val packages = nonNullIntent.getStringArrayListExtra(Argument.packagesName)
+            val duration = nonNullIntent.getLongExtra(Argument.duration, 0)
+
             // Only update if we have new packages
-            if (packages != null && packages.isNotEmpty()) {
+            if (!packages.isNullOrEmpty()) {
                 Log.d(TAG, "Updating blocked packages from intent: ${packages.joinToString(", ")}")
                 blockedPackages.clear()
                 blockedPackages.addAll(packages)
@@ -513,7 +512,7 @@ class BlockAppService : Service() {
         }
         
         // Try to load the layout from the specified package or fall back to a simple programmatic layout
-        overlayView = loadOverlayView(intent?.getStringExtra("layoutPackage"), intent?.getStringExtra("layoutName") ?: "block_overlay")
+        overlayView = loadOverlayView(intent?.getStringExtra(Argument.layoutPackage), intent?.getStringExtra(Argument.layoutName) ?: DEFAULT_LAYOUT_NAME)
 
         // Check if blocking period has ended
         if (System.currentTimeMillis() >= blockEndTime || blockedPackages.isEmpty()) {
@@ -529,8 +528,8 @@ class BlockAppService : Service() {
         manager.createNotificationChannel(channel)
 
         // Get notification parameters from intent (already formatted by ScreenTimeMethod)
-        val notificationTitle = intent?.getStringExtra("notificationTitle") ?: "App Blocker Active"
-        val notificationText = intent?.getStringExtra("notificationText")
+        val notificationTitle = intent?.getStringExtra(Argument.notificationTitle) ?: getString(R.string.notification_title)
+        val notificationText = intent?.getStringExtra(Argument.notificationText)
             ?: "Blocking ${blockedPackages.size} apps"
         
         // Create the notification

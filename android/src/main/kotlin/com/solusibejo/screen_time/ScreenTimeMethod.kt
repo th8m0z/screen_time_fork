@@ -33,6 +33,7 @@ import com.solusibejo.screen_time.receiver.AlarmReceiver
 import com.solusibejo.screen_time.service.AppMonitoringService
 import com.solusibejo.screen_time.service.BlockAppService
 import com.solusibejo.screen_time.util.ApplicationInfoUtil
+import com.solusibejo.screen_time.util.DurationUtil.inString
 import com.solusibejo.screen_time.util.IntExtension.timeInString
 import com.solusibejo.screen_time.util.ServiceUtil
 import com.solusibejo.screen_time.util.UsageStatsWorker
@@ -425,44 +426,6 @@ object ScreenTimeMethod {
         }
     }
 
-    /**
-     * Check if notification permission is granted
-     * @return true if granted or not required (Android < 13), false otherwise
-     */
-    fun hasNotificationPermission(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true // Permission not required for Android < 13
-        }
-    }
-
-    /**
-     * Format notification text with placeholders
-     * 
-     * @param template The notification text template with placeholders
-     * @param appsCount Number of apps being blocked
-     * @param timeRemainingMinutes Time remaining in minutes
-     * @return Formatted notification text
-     */
-    private fun formatNotificationText(
-        template: String?,
-        appsCount: Int,
-        timeRemainingMinutes: Long
-    ): String {
-        return if (template != null) {
-            template
-                .replace("{count}", appsCount.toString())
-                .replace("{duration}", "$timeRemainingMinutes")
-                .replace("{minutes}", "$timeRemainingMinutes")
-        } else {
-            "Blocking $appsCount apps for $timeRemainingMinutes more minutes"
-        }
-    }
-
     fun blockApps(
         context: Context,
         packagesName: List<String>,
@@ -476,38 +439,44 @@ object ScreenTimeMethod {
 
         try {
             // Check notification permission
-            if (!hasNotificationPermission(context)) {
+            if (permissionStatus(context, ScreenTimePermissionType.NOTIFICATION) != ScreenTimePermissionStatus.APPROVED) {
                 Log.e("ScreenTimeMethod", "Notification permission not granted")
                 return false
             }
 
             // Start BlockAppService
             val intent = Intent(context, BlockAppService::class.java).apply {
-                putStringArrayListExtra("packages", ArrayList(packagesName))
-                putExtra("duration", duration.toMillis())
+                putStringArrayListExtra(Argument.packagesName, ArrayList(packagesName))
+                putExtra(Argument.duration, duration.toMillis())
 
                 // Pass the example app's package name to load the layout from
                 val callerPackageName = context.packageName
-                putExtra("layoutPackage", callerPackageName)
-                putExtra("layoutName", layoutName ?: "block_overlay")
+                putExtra(Argument.layoutPackage, callerPackageName)
+                putExtra(Argument.layoutName, layoutName ?: BlockAppService.DEFAULT_LAYOUT_NAME)
                 
                 // Format notification text and pass to service
-                val formattedTitle = notificationTitle ?: "App Blocker Active"
-                val formattedText = formatNotificationText(
-                    notificationText,
-                    packagesName.size,
-                    duration.toMinutes()
-                )
+                val formattedTitle = notificationTitle ?: context.getString(R.string.notification_title)
+                val formattedText = notificationText ?: context.getString(R.string.notification_text, packagesName.size.toString(), duration.inString())
                 
                 // Pass notification customization parameters
-                putExtra("notificationTitle", formattedTitle)
-                putExtra("notificationText", formattedText)
+                putExtra(Argument.notificationTitle, formattedTitle)
+                putExtra(Argument.notificationText, formattedText)
             }
 
             try {
                 context.startForegroundService(intent)
-            } catch (e: ForegroundServiceStartNotAllowedException) {
-                Log.e("ScreenTimeMethod", "Foreground service start not allowed", e)
+            } catch (e: Exception) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if(e is ForegroundServiceStartNotAllowedException){
+                        Log.e("ScreenTimeMethod", "Foreground service start not allowed", e)
+                    }
+                    else {
+                        Log.e("ScreenTimeMethod", "Foreground service start not allowed", e)
+                    }
+                } else {
+                    Log.e("ScreenTimeMethod", "Foreground service start not allowed", e)
+                }
+
                 return false
             }
 
@@ -621,7 +590,7 @@ object ScreenTimeMethod {
 
     fun isOnBlockingApps(context: Context): Boolean {
         val sharedPreferences = context.getSharedPreferences(
-            BlockAppService.PREF_NAME,
+            ScreenTimePlugin.PREF_NAME,
             Context.MODE_PRIVATE
         )
         

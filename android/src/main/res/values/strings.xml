@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_title">Screen Time Active</string>
+    <string name="notification_text">Blocking %1$s apps, for %2$s</string>
+    <string name="close">Close</string>
+</resources>

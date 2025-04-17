@@ -5,6 +5,7 @@ import android.content.Intent
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.solusibejo.screen_time.ScreenTimePlugin
 import com.solusibejo.screen_time.service.BlockAppService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,7 +28,7 @@ class UnblockWorker(
             
             // Check if we should still be unblocking
             val sharedPreferences = applicationContext.getSharedPreferences(
-                BlockAppService.PREF_NAME,
+                ScreenTimePlugin.PREF_NAME,
                 Context.MODE_PRIVATE
             )
             

@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.solusibejo.screen_time.ScreenTimePlugin
 import com.solusibejo.screen_time.service.BlockAppService
 import com.solusibejo.screen_time.worker.ServiceRestartWorker
 import com.solusibejo.screen_time.worker.UnblockWorker
@@ -18,7 +19,7 @@ import java.util.concurrent.TimeUnit
 class AlarmReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "AlarmReceiver"
-        const val ACTION_STOP_BLOCKING = "com.solusibejo.screen_time.STOP_BLOCKING"
+        const val ACTION_STOP_BLOCKING = "${ScreenTimePlugin.PACKAGE_NAME}.STOP_BLOCKING"
         private const val UNBLOCK_REQUEST_CODE = 1001
         private const val BACKUP_UNBLOCK_REQUEST_CODE = 1002
 
@@ -32,7 +33,7 @@ class AlarmReceiver : BroadcastReceiver() {
             
             // Save block end time in shared preferences
             val sharedPreferences = context.getSharedPreferences(
-                BlockAppService.PREF_NAME,
+                ScreenTimePlugin.PREF_NAME,
                 Context.MODE_PRIVATE
             )
             sharedPreferences.edit().apply {
@@ -196,7 +197,7 @@ class AlarmReceiver : BroadcastReceiver() {
             
             // Clear shared preferences
             val sharedPreferences = context.getSharedPreferences(
-                BlockAppService.PREF_NAME,
+                ScreenTimePlugin.PREF_NAME,
                 Context.MODE_PRIVATE
             )
             sharedPreferences.edit().apply {
@@ -218,7 +219,7 @@ class AlarmReceiver : BroadcastReceiver() {
             
             // Update shared preferences
             val sharedPreferences = context.getSharedPreferences(
-                BlockAppService.PREF_NAME,
+                ScreenTimePlugin.PREF_NAME,
                 Context.MODE_PRIVATE
             )
             sharedPreferences.edit().apply {

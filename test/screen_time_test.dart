@@ -67,10 +67,14 @@ class MockScreenTimePlatform
   }
 
   @override
-  Future<bool> blockApps(
-      {List<String> packagesName = const <String>[],
-      required Duration duration}) {
-    throw UnimplementedError();
+  Future<bool> blockApps({
+    List<String> packagesName = const <String>[],
+    required Duration duration,
+    required String layoutName,
+    String? notificationTitle,
+    String? notificationText,
+  }) async {
+    return true;
   }
 
   @override

@@ -4,6 +4,9 @@ class Argument {
   static const String ignoreSystemApps = 'ignoreSystemApps';
   static const String packagesName = 'packagesName';
   static const String duration = 'duration';
+  static const String layoutName = 'layoutName';
+  static const String notificationTitle = 'notificationTitle';
+  static const String notificationText = 'notificationText';
 
   static const String startHour = 'startHour';
   static const String startMinute = 'startMinute';

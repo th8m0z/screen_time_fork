@@ -73,6 +73,9 @@ abstract class ScreenTimePlatform extends PlatformInterface {
   Future<bool> blockApps({
     List<String> packagesName = const <String>[],
     required Duration duration,
+    required String layoutName,
+    String? notificationTitle,
+    String? notificationText,
   }) =>
       throw UnimplementedError('blockApps() has not been implemented.');
 

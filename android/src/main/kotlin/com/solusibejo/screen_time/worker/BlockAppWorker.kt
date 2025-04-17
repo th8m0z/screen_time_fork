@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.work.*
+import com.solusibejo.screen_time.ScreenTimePlugin
 import com.solusibejo.screen_time.service.BlockAppService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -44,7 +45,7 @@ class BlockAppWorker(
 
             // Save block state
             applicationContext.getSharedPreferences(
-                BlockAppService.PREF_NAME,
+                ScreenTimePlugin.PREF_NAME,
                 Context.MODE_PRIVATE
             ).edit().apply {
                 putBoolean(BlockAppService.KEY_IS_BLOCKING, true)

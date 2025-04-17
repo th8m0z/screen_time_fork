@@ -82,15 +82,22 @@ class ScreenTime {
   /// - `duration`: How long to block the apps
   /// - `layoutName`: Optional custom layout name to use for the block overlay
   ///   This allows for customizing the UI of the block screen
+  /// - `notificationTitle`: Title for the notification (default: "App Blocker Active")
+  /// - `notificationText`: Text template for the notification (default: "Blocking {count} apps for {minutes} more minutes")
+  ///   You can use placeholders: {count} for number of apps, {duration} or {minutes} for time remaining
   Future<bool> blockApps({
     List<String> packagesName = const <String>[],
     required Duration duration,
     required String layoutName,
+    String? notificationTitle,
+    String? notificationText,
   }) async {
     return await ScreenTimePlatform.instance.blockApps(
       packagesName: packagesName,
       duration: duration,
       layoutName: layoutName,
+      notificationTitle: notificationTitle,
+      notificationText: notificationText,
     );
   }
 

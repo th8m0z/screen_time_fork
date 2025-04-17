@@ -528,11 +528,15 @@ class BlockAppService : Service() {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(channel)
 
-        // Create a more informative notification
-        val timeRemaining = (blockEndTime - System.currentTimeMillis()) / 60000 // in minutes
+        // Get notification parameters from intent (already formatted by ScreenTimeMethod)
+        val notificationTitle = intent?.getStringExtra("notificationTitle") ?: "App Blocker Active"
+        val notificationText = intent?.getStringExtra("notificationText")
+            ?: "Blocking ${blockedPackages.size} apps"
+        
+        // Create the notification
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("App Blocker Active")
-            .setContentText("Blocking ${blockedPackages.size} apps for $timeRemaining more minutes")
+            .setContentTitle(notificationTitle)
+            .setContentText(notificationText)
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setOngoing(true)
             .build()

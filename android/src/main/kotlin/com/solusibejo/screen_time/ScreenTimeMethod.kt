@@ -440,12 +440,37 @@ object ScreenTimeMethod {
         }
     }
 
+    /**
+     * Format notification text with placeholders
+     * 
+     * @param template The notification text template with placeholders
+     * @param appsCount Number of apps being blocked
+     * @param timeRemainingMinutes Time remaining in minutes
+     * @return Formatted notification text
+     */
+    private fun formatNotificationText(
+        template: String?,
+        appsCount: Int,
+        timeRemainingMinutes: Long
+    ): String {
+        return if (template != null) {
+            template
+                .replace("{count}", appsCount.toString())
+                .replace("{duration}", "$timeRemainingMinutes")
+                .replace("{minutes}", "$timeRemainingMinutes")
+        } else {
+            "Blocking $appsCount apps for $timeRemainingMinutes more minutes"
+        }
+    }
+
     fun blockApps(
         context: Context,
         packagesName: List<String>,
         duration: Duration,
         sharedPreferences: SharedPreferences,
         layoutName: String? = null,
+        notificationTitle: String? = null,
+        notificationText: String? = null,
     ): Boolean {
         if (packagesName.isEmpty()) return false
 
@@ -460,11 +485,23 @@ object ScreenTimeMethod {
             val intent = Intent(context, BlockAppService::class.java).apply {
                 putStringArrayListExtra("packages", ArrayList(packagesName))
                 putExtra("duration", duration.toMillis())
-                
+
                 // Pass the example app's package name to load the layout from
                 val callerPackageName = context.packageName
                 putExtra("layoutPackage", callerPackageName)
                 putExtra("layoutName", layoutName ?: "block_overlay")
+                
+                // Format notification text and pass to service
+                val formattedTitle = notificationTitle ?: "App Blocker Active"
+                val formattedText = formatNotificationText(
+                    notificationText,
+                    packagesName.size,
+                    duration.toMinutes()
+                )
+                
+                // Pass notification customization parameters
+                putExtra("notificationTitle", formattedTitle)
+                putExtra("notificationText", formattedText)
             }
 
             try {

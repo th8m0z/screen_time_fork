@@ -71,8 +71,10 @@ class MockScreenTimePlatform
     List<String> packagesName = const <String>[],
     required Duration duration,
     required String layoutName,
-  }) {
-    throw UnimplementedError();
+    String? notificationTitle,
+    String? notificationText,
+  }) async {
+    return true;
   }
 
   @override

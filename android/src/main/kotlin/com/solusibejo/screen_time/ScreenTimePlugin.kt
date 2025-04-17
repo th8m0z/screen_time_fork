@@ -132,6 +132,8 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
         val packagesName = args[Argument.packagesName] as List<*>?
         val durationInMillisecond = args[Argument.duration] as Int
         val layoutName = args[Argument.layoutName] as String?
+        val notificationTitle = args[Argument.notificationTitle] as String?
+        val notificationText = args[Argument.notificationText] as String?
 
         val duration = Duration.ofMillis(durationInMillisecond.toLong())
         val response = ScreenTimeMethod.blockApps(
@@ -140,7 +142,10 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
           duration,
           sharedPreferences,
           layoutName,
+          notificationTitle,
+          notificationText
         )
+
         result.success(response)
       }
       MethodName.scheduleBlock -> {

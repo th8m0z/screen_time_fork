@@ -174,7 +174,9 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                                   .map((app) => app.packageName ?? '')
                                   .toList(),
                           duration: selectedDuration,
-                          layoutName: 'block_overlay', // You can customize this name for different layouts
+                          layoutName: 'block_overlay', // Custom overlay layout
+                          notificationTitle: 'App Blocker Active',
+                          notificationText: 'Blocking {count} apps for {minutes} more minutes',
                         );
                       }
                     }

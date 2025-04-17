@@ -1,3 +1,10 @@
+## 0.8.0 - April 18, 2025
+* Configurable overlay UI
+* Configurable notification title
+* Configurable notificaiton text
+* Fix draw overlay lifecycle
+* Fix block app service lifecycle
+
 ## 0.7.2 - April 14, 2025
 * Add request permission notification required for Android > 13
 * Add check permission notification

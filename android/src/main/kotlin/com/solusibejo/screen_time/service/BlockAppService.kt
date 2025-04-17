@@ -18,6 +18,8 @@ import android.view.View
 import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import com.solusibejo.screen_time.R
+import com.solusibejo.screen_time.worker.ServiceMonitorWorker
+import com.solusibejo.screen_time.worker.ServiceRestartWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -44,6 +46,22 @@ class BlockAppService : Service() {
         const val KEY_BLOCKED_PACKAGES = "blocked_packages"
         const val KEY_IS_BLOCKING = "isBlocking"
         private const val TAG = "BlockAppService"
+        
+        // WorkManager tags
+        private const val SERVICE_MONITOR_TAG = "block_app_service_monitor"
+        private const val SERVICE_RESTART_TAG = "block_app_service_restart"
+        
+        // Intent actions
+        const val ACTION_START_BLOCKING = "com.solusibejo.screen_time.START_BLOCKING"
+        const val ACTION_STOP_BLOCKING = "com.solusibejo.screen_time.STOP_BLOCKING"
+        
+        // Check if service is running
+        fun isServiceRunning(context: Context): Boolean {
+            val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+            return manager.getRunningServices(Integer.MAX_VALUE).any { 
+                it.service.className == BlockAppService::class.java.name 
+            }
+        }
     }
 
     private val params = WindowManager.LayoutParams(
@@ -67,6 +85,9 @@ class BlockAppService : Service() {
         Log.d(TAG, "Starting blocking apps: ${blockedPackages.joinToString(", ")} until ${blockEndTime}")
         Log.d(TAG, "Current time: ${System.currentTimeMillis()}, remaining: ${blockEndTime - System.currentTimeMillis()} ms")
         
+        // Schedule a periodic work to ensure service keeps running
+        scheduleServiceMonitor()
+        
         serviceScope.launch {
             try {
                 while (isActive && System.currentTimeMillis() < blockEndTime) {
@@ -74,10 +95,17 @@ class BlockAppService : Service() {
                     delay(CHECK_INTERVAL)
                 }
                 Log.d(TAG, "Block time ended, stopping service")
-                stopSelf()
+                stopBlocking()
             } catch (e: Exception) {
                 Log.e(TAG, "Error in blocking loop", e)
-                stopSelf()
+                // Don't stop the service on error, try to recover
+                Log.d(TAG, "Attempting to recover from error")
+                delay(1000) // Wait a bit before retrying
+                if (System.currentTimeMillis() < blockEndTime) {
+                    startBlockingApps() // Restart the blocking loop
+                } else {
+                    stopBlocking()
+                }
             }
         }
     }
@@ -287,6 +315,7 @@ class BlockAppService : Service() {
     
     private fun stopBlocking() {
         try {
+            Log.d(TAG, "Stopping blocking service")
             // Remove overlay if it exists
             if (overlayView != null && windowManager != null && isOverlayDisplayed) {
                 windowManager?.removeView(overlayView)
@@ -308,6 +337,9 @@ class BlockAppService : Service() {
                 apply()
             }
             
+            // Cancel the service monitor work
+            cancelServiceMonitor()
+            
             stopSelf()
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping service", e)
@@ -317,6 +349,7 @@ class BlockAppService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         try {
+            Log.d(TAG, "onDestroy called")
             // Remove overlay if it exists
             if (overlayView != null && windowManager != null && isOverlayDisplayed) {
                 windowManager?.removeView(overlayView)
@@ -329,9 +362,97 @@ class BlockAppService : Service() {
             // Clear resources
             windowManager = null
             overlayView = null
-            blockedPackages.clear()
+            
+            // Check if we're still in blocking period
+            val sharedPreferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            val isBlocking = sharedPreferences.getBoolean(KEY_IS_BLOCKING, false)
+            val blockEndTime = sharedPreferences.getLong(KEY_BLOCK_END_TIME, 0)
+            
+            if (isBlocking && System.currentTimeMillis() < blockEndTime) {
+                Log.d(TAG, "Service destroyed while still in blocking period, scheduling restart")
+                // Schedule a restart of the service
+                scheduleServiceRestart()
+            } else {
+                blockedPackages.clear()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error in onDestroy", e)
+        }
+    }
+    
+    /**
+     * Schedules a periodic work to monitor the service and restart it if it's killed
+     */
+    private fun scheduleServiceMonitor() {
+        try {
+            val workManager = androidx.work.WorkManager.getInstance(applicationContext)
+            
+            // Cancel any existing monitoring work
+            workManager.cancelAllWorkByTag(SERVICE_MONITOR_TAG)
+            
+            // Create a periodic work request to check if service is running
+            val monitorRequest = androidx.work.PeriodicWorkRequestBuilder<ServiceMonitorWorker>(15, java.util.concurrent.TimeUnit.MINUTES)
+                .addTag(SERVICE_MONITOR_TAG)
+                .setBackoffCriteria(
+                    androidx.work.BackoffPolicy.LINEAR,
+                    androidx.work.WorkRequest.MIN_BACKOFF_MILLIS,
+                    java.util.concurrent.TimeUnit.MILLISECONDS
+                )
+                .build()
+            
+            // Enqueue the work
+            workManager.enqueueUniquePeriodicWork(
+                SERVICE_MONITOR_TAG,
+                androidx.work.ExistingPeriodicWorkPolicy.REPLACE,
+                monitorRequest
+            )
+            
+            Log.d(TAG, "Scheduled service monitor work")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error scheduling service monitor", e)
+        }
+    }
+    
+    /**
+     * Cancels the service monitor work
+     */
+    private fun cancelServiceMonitor() {
+        try {
+            val workManager = androidx.work.WorkManager.getInstance(applicationContext)
+            workManager.cancelAllWorkByTag(SERVICE_MONITOR_TAG)
+            Log.d(TAG, "Cancelled service monitor work")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cancelling service monitor", e)
+        }
+    }
+    
+    /**
+     * Schedules a one-time work to restart the service
+     */
+    private fun scheduleServiceRestart() {
+        try {
+            val workManager = androidx.work.WorkManager.getInstance(applicationContext)
+            
+            // Create a one-time work request to restart the service
+            val restartRequest = androidx.work.OneTimeWorkRequestBuilder<ServiceRestartWorker>()
+                .addTag(SERVICE_RESTART_TAG)
+                .setBackoffCriteria(
+                    androidx.work.BackoffPolicy.LINEAR,
+                    androidx.work.WorkRequest.MIN_BACKOFF_MILLIS,
+                    java.util.concurrent.TimeUnit.MILLISECONDS
+                )
+                .build()
+            
+            // Enqueue the work
+            workManager.enqueueUniqueWork(
+                SERVICE_RESTART_TAG,
+                androidx.work.ExistingWorkPolicy.REPLACE,
+                restartRequest
+            )
+            
+            Log.d(TAG, "Scheduled service restart work")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error scheduling service restart", e)
         }
     }
 
@@ -351,6 +472,13 @@ class BlockAppService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand called with action: ${intent?.action}")
+        
+        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        
+        // Load shared preferences first to ensure we have the latest state
+        val sharedPreferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        
         // Get packages and duration from intent
         intent?.let { nonNullIntent ->
             val packages = nonNullIntent.getStringArrayListExtra("packages")
@@ -358,42 +486,61 @@ class BlockAppService : Service() {
             val customLayoutPackage = nonNullIntent.getStringExtra("layoutPackage")
             val customLayoutName = nonNullIntent.getStringExtra("layoutName") ?: "block_overlay"
             
-            packages?.let { packageList ->
-                blockedPackages.addAll(packageList)
+            // Only update if we have new packages
+            if (packages != null && packages.isNotEmpty()) {
+                Log.d(TAG, "Updating blocked packages from intent: ${packages.joinToString(", ")}")
+                blockedPackages.clear()
+                blockedPackages.addAll(packages)
                 blockEndTime = System.currentTimeMillis() + duration
+                
+                // Save to preferences
+                sharedPreferences.edit().apply {
+                    putBoolean(KEY_IS_BLOCKING, true)
+                    putStringSet(KEY_BLOCKED_PACKAGES, blockedPackages)
+                    putLong(KEY_BLOCK_END_TIME, blockEndTime)
+                    apply()
+                }
             }
         }
-        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        
+        // If no packages were provided in the intent, load from preferences
+        if (blockedPackages.isEmpty()) {
+            blockEndTime = sharedPreferences.getLong(KEY_BLOCK_END_TIME, 0)
+            blockedPackages.addAll(
+                sharedPreferences.getStringSet(KEY_BLOCKED_PACKAGES, setOf()) ?: setOf()
+            )
+            Log.d(TAG, "Loaded blocked packages from preferences: ${blockedPackages.joinToString(", ")}")
+        }
         
         // Try to load the layout from the specified package or fall back to a simple programmatic layout
         overlayView = loadOverlayView(intent?.getStringExtra("layoutPackage"), intent?.getStringExtra("layoutName") ?: "block_overlay")
 
-        val sharedPreferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        blockEndTime = sharedPreferences.getLong(KEY_BLOCK_END_TIME, 0)
-        blockedPackages.clear()
-        blockedPackages.addAll(
-            sharedPreferences.getStringSet(KEY_BLOCKED_PACKAGES, setOf()) ?: setOf()
-        )
-
-        if (System.currentTimeMillis() >= blockEndTime) {
+        // Check if blocking period has ended
+        if (System.currentTimeMillis() >= blockEndTime || blockedPackages.isEmpty()) {
+            Log.d(TAG, "Blocking period has ended or no packages to block")
             stopBlocking()
             return START_NOT_STICKY
         }
 
+        // Create notification channel
         val channel = NotificationChannel(CHANNEL_ID, "BlockAppService Channel", NotificationManager.IMPORTANCE_LOW)
         channel.setShowBadge(false)
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(channel)
 
+        // Create a more informative notification
+        val timeRemaining = (blockEndTime - System.currentTimeMillis()) / 60000 // in minutes
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("App Blocker Active")
-            .setContentText("Blocking ${blockedPackages.size} apps")
+            .setContentText("Blocking ${blockedPackages.size} apps for $timeRemaining more minutes")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setOngoing(true)
             .build()
 
         startForeground(NOTIFICATION_ID, notification)
         startBlockingApps()
 
-        return START_STICKY
+        // Return START_REDELIVER_INTENT to ensure the service is restarted with the same intent if killed
+        return START_REDELIVER_INTENT
     }
 }

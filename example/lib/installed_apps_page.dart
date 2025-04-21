@@ -5,6 +5,9 @@ import 'package:screen_time_example/duration_ext.dart';
 import 'app_monitoring_settings.dart';
 import 'app_usage_page.dart';
 
+/// Enum for blocking action options
+enum BlockingAction { stop, pause, cancel }
+
 class InstalledAppsPage extends StatefulWidget {
   const InstalledAppsPage({super.key, required this.installedApps});
 
@@ -146,7 +149,7 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                           notificationPermission ==
                               ScreenTimePermissionStatus.approved)
                       ? (isOnBlocking)
-                          ? 'Stop Block'
+                          ? 'Block Apps Options'
                           : 'Block Apps'
                       : 'Need Usage Stat, Request Draw Overlay, and Notification',
                 ),
@@ -159,12 +162,34 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                       notificationPermission ==
                           ScreenTimePermissionStatus.approved) {
                     if (isOnBlocking) {
-                      await _screenTime.unblockApps();
+                      // Show options when blocking is active: Stop or Pause
+                      if (!modalCtx.mounted) return;
+                      final action = await _showBlockingOptionsDialog(modalCtx);
+                      
+                      if (action == BlockingAction.stop) {
+                        await _screenTime.unblockApps();
+                      } else if (action == BlockingAction.pause) {
+                        // Show pause duration selection dialog
+                        if (!modalCtx.mounted) return;
+                        final pauseDuration = await _showDurationPickerDialog(
+                          modalCtx,
+                          title: 'Select Pause Duration',
+                        );
+                        
+                        if (pauseDuration != null) {
+                          await _screenTime.pauseBlockApps(
+                            pauseDuration: pauseDuration,
+                            notificationTitle: 'Blocking Resumed',
+                            notificationText: 'App blocking has resumed after pause',
+                          );
+                        }
+                      }
                     } else {
-                      // Show duration selection dialog
+                      // Show duration selection dialog for new blocking
                       if (!modalCtx.mounted) return;
                       final selectedDuration = await _showDurationPickerDialog(
                         modalCtx,
+                        title: 'Select Block Duration',
                       );
 
                       // If user cancels the dialog, selectedDuration will be null
@@ -273,7 +298,10 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
   }
 
   /// Shows a dialog for selecting duration for app blocking
-  Future<Duration?> _showDurationPickerDialog(BuildContext context) async {
+  Future<Duration?> _showDurationPickerDialog(
+    BuildContext context, {
+    String title = 'Select Blocking Duration',
+  }) async {
     int hours = 1;
     int minutes = 0;
 
@@ -281,7 +309,7 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Select Blocking Duration'),
+          title: Text(title),
           content: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
               return Column(
@@ -351,6 +379,44 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                 Navigator.of(
                   context,
                 ).pop(Duration(hours: hours, minutes: minutes));
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Shows a dialog with options for managing active app blocking
+  Future<BlockingAction?> _showBlockingOptionsDialog(BuildContext context) async {
+    return showDialog<BlockingAction>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Block Apps Options'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('What would you like to do with the current app blocking?'),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop(BlockingAction.cancel);
+              },
+            ),
+            TextButton(
+              child: Text('Pause Blocking'),
+              onPressed: () {
+                Navigator.of(context).pop(BlockingAction.pause);
+              },
+            ),
+            TextButton(
+              child: Text('Stop Blocking'),
+              onPressed: () {
+                Navigator.of(context).pop(BlockingAction.stop);
               },
             ),
           ],

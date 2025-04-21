@@ -9,6 +9,8 @@ class MethodName {
   static const getActiveSchedules = 'getActiveSchedules';
   static const unblockApps = 'unblockApps';
   static const isOnBlockingApps = 'isOnBlockingApps';
+  static const pauseBlockApps = 'pauseBlockApps';
+  static const isBlockingPaused = 'isBlockingPaused';
 
   static const monitoringAppUsage = 'monitoringAppUsage';
   static const configureAppMonitoringService = 'configureAppMonitoringService';

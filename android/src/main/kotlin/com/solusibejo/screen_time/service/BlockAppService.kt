@@ -98,8 +98,15 @@ class BlockAppService : Service() {
                 Log.d(TAG, "Block time ended, stopping service")
                 stopBlocking()
             } catch (e: Exception) {
+                // Check if this is a cancellation exception, which is normal during service shutdown
+                if (e is kotlinx.coroutines.CancellationException) {
+                    Log.d(TAG, "Service job cancelled normally during shutdown")
+                    // No need to recover, this is an expected shutdown
+                    return@launch
+                }
+                
+                // For other exceptions, try to recover
                 Log.e(TAG, "Error in blocking loop", e)
-                // Don't stop the service on error, try to recover
                 Log.d(TAG, "Attempting to recover from error")
                 delay(1000) // Wait a bit before retrying
                 if (System.currentTimeMillis() < blockEndTime) {

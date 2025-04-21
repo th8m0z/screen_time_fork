@@ -182,7 +182,7 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                             notificationTitle: 'Blocking Resumed',
                             notificationText:
                                 'App blocking has resumed after pause',
-                            showNotification: false,
+                            showNotification: true,
                           );
                         }
                       }

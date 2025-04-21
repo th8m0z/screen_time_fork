@@ -165,7 +165,7 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                       // Show options when blocking is active: Stop or Pause
                       if (!modalCtx.mounted) return;
                       final action = await _showBlockingOptionsDialog(modalCtx);
-                      
+
                       if (action == BlockingAction.stop) {
                         await _screenTime.unblockApps();
                       } else if (action == BlockingAction.pause) {
@@ -175,12 +175,14 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                           modalCtx,
                           title: 'Select Pause Duration',
                         );
-                        
+
                         if (pauseDuration != null) {
                           await _screenTime.pauseBlockApps(
                             pauseDuration: pauseDuration,
                             notificationTitle: 'Blocking Resumed',
-                            notificationText: 'App blocking has resumed after pause',
+                            notificationText:
+                                'App blocking has resumed after pause',
+                            showNotification: false,
                           );
                         }
                       }
@@ -388,7 +390,9 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
   }
 
   /// Shows a dialog with options for managing active app blocking
-  Future<BlockingAction?> _showBlockingOptionsDialog(BuildContext context) async {
+  Future<BlockingAction?> _showBlockingOptionsDialog(
+    BuildContext context,
+  ) async {
     return showDialog<BlockingAction>(
       context: context,
       builder: (BuildContext context) {

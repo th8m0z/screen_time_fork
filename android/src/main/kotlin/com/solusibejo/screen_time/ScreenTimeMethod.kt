@@ -3,6 +3,8 @@ package com.solusibejo.screen_time
 import android.Manifest
 import android.app.AppOpsManager
 import android.app.ForegroundServiceStartNotAllowedException
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
@@ -18,6 +20,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.util.Base64
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -32,6 +35,7 @@ import com.solusibejo.screen_time.model.BlockSchedule
 import com.solusibejo.screen_time.receiver.AlarmReceiver
 import com.solusibejo.screen_time.service.AppMonitoringService
 import com.solusibejo.screen_time.service.BlockAppService
+import com.solusibejo.screen_time.service.PauseNotificationService
 import com.solusibejo.screen_time.util.ApplicationInfoUtil
 import com.solusibejo.screen_time.util.DurationUtil.inString
 import com.solusibejo.screen_time.util.IntExtension.timeInString
@@ -637,6 +641,7 @@ object ScreenTimeMethod {
      * @param sharedPreferences SharedPreferences instance to store the pause state
      * @param notificationTitle Optional custom notification title for when blocking resumes
      * @param notificationText Optional custom notification text for when blocking resumes
+     * @param showNotification Whether to show a persistent notification during the pause period
      * @return Boolean indicating if the pause was successful
      */
     fun pauseBlockApps(
@@ -645,6 +650,7 @@ object ScreenTimeMethod {
         sharedPreferences: SharedPreferences,
         notificationTitle: String? = null,
         notificationText: String? = null,
+        showNotification: Boolean = true,
     ): Boolean {
         try {
             // Check if we're currently blocking apps
@@ -681,6 +687,30 @@ object ScreenTimeMethod {
                 apply()
             }
 
+            // Calculate pause end time for the worker regardless of notification
+            val pauseEndTime = System.currentTimeMillis() + pauseDuration.toMillis()
+            
+            // Only start the PauseNotificationService if showNotification is true
+            if (showNotification) {
+                val pauseServiceIntent = Intent(context, PauseNotificationService::class.java).apply {
+                    putExtra(Argument.pauseEndTime, pauseEndTime)
+                    putExtra(Argument.pauseDuration, pauseDuration.toMillis())
+                    putExtra("remaining_block_time", remainingBlockTime)
+                    putExtra("paused_packages_count", blockedPackages.size)
+                }
+                
+                Log.d("ScreenTimeMethod", "Starting PauseNotificationService for ${pauseDuration.inString()} with ${blockedPackages.size} apps")
+                
+                try {
+                    context.startForegroundService(pauseServiceIntent)
+                } catch (e: Exception) {
+                    Log.e("ScreenTimeMethod", "Error starting PauseNotificationService", e)
+                    // Continue even if the notification service fails - the pause functionality will still work
+                }
+            } else {
+                Log.d("ScreenTimeMethod", "Skipping notification for pause of ${pauseDuration.inString()} with ${blockedPackages.size} apps")
+            }
+            
             // Stop the current blocking service
             val intent = Intent(context, BlockAppService::class.java)
             context.stopService(intent)

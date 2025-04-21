@@ -8,6 +8,7 @@ class Argument {
   static const String layoutName = 'layoutName';
   static const String notificationTitle = 'notificationTitle';
   static const String notificationText = 'notificationText';
+  static const String showNotification = 'showNotification';
 
   static const String startHour = 'startHour';
   static const String startMinute = 'startMinute';

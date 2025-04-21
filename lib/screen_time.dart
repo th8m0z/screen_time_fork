@@ -111,25 +111,28 @@ class ScreenTime {
 
   /// Temporarily pause blocking apps for a specified duration
   /// After the pause duration expires, blocking will automatically resume
-  /// 
+  ///
   /// Parameters:
   /// - `pauseDuration`: How long to pause the blocking for
   /// - `notificationTitle`: Title for the notification when blocking resumes
   /// - `notificationText`: Text for the notification when blocking resumes
+  /// - `showNotification`: Whether to show a notification when blocking resumes
   Future<bool> pauseBlockApps({
     required Duration pauseDuration,
     String? notificationTitle,
     String? notificationText,
+    bool showNotification = true,
   }) async {
     return await ScreenTimePlatform.instance.pauseBlockApps(
       pauseDuration: pauseDuration,
       notificationTitle: notificationTitle,
       notificationText: notificationText,
+      showNotification: showNotification,
     );
   }
 
   /// Check if app blocking is currently paused
-  /// 
+  ///
   /// Returns a map with the following keys:
   /// - `isPaused`: Boolean indicating if blocking is currently paused
   /// - `remainingPauseTime`: Duration in milliseconds until blocking resumes (if paused)

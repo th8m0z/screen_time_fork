@@ -256,13 +256,15 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
         val pauseDuration = Duration.ofMillis(pauseDurationInMillisecond.toLong())
         val notificationTitle = args[Argument.notificationTitle] as String?
         val notificationText = args[Argument.notificationText] as String?
+        val showNotification = args[Argument.showNotification] as Boolean? ?: true
 
         val response = ScreenTimeMethod.pauseBlockApps(
           context,
           pauseDuration,
           sharedPreferences,
           notificationTitle,
-          notificationText
+          notificationText,
+          showNotification
         )
 
         result.success(response)

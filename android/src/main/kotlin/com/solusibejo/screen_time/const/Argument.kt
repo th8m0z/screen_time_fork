@@ -10,10 +10,12 @@ object Argument {
     const val packagesName = "packagesName"
     const val duration = "duration"
     const val pauseDuration = "pauseDuration"
+    const val pauseEndTime = "pauseEndTime"
     const val layoutPackage = "layoutPackage"
     const val layoutName = "layoutName"
     const val notificationTitle = "notificationTitle"
     const val notificationText = "notificationText"
+    const val showNotification = "showNotification"
 
     const val startHour = "startHour"
     const val startMinute = "startMinute"

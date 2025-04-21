@@ -8,6 +8,7 @@ import androidx.work.WorkerParameters
 import com.solusibejo.screen_time.ScreenTimePlugin
 import com.solusibejo.screen_time.const.Argument
 import com.solusibejo.screen_time.service.BlockAppService
+import com.solusibejo.screen_time.util.DurationUtil.inString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -72,9 +73,19 @@ class ResumeBlockingWorker(
                 // Continue anyway
             }
             
-            // Get notification customization from input data
-            val notificationTitle = inputData.getString("notification_title")
-            val notificationText = inputData.getString("notification_text")
+            // Create improved notification text for resumed blocking
+            val remainingDuration = Duration.ofMillis(remainingTime)
+            val formattedRemainingTime = remainingDuration.inString()
+            
+            // Create custom notification text that always shows the remaining time
+            val customNotificationTitle = "Blocking Resumed"
+            val customNotificationText = "Resumed blocking ${pausedPackages.size} apps for remaining ${formattedRemainingTime}"
+            
+            // Override any input data to ensure our improved text is used
+            val notificationTitle = customNotificationTitle
+            val notificationText = customNotificationText
+            
+            Log.d(TAG, "Resuming with notification: $notificationTitle - $notificationText")
             
             // Start BlockAppService with the remaining duration
             val intent = Intent(applicationContext, BlockAppService::class.java).apply {

@@ -180,34 +180,37 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
             MethodName.unblockApps, arguments) ??
         false;
   }
-  
+
   @override
   Future<bool> pauseBlockApps({
     required Duration pauseDuration,
     String? notificationTitle,
     String? notificationText,
+    bool showNotification = true,
   }) async {
     final arguments = <Object?, Object?>{
       Argument.pauseDuration: pauseDuration.inMilliseconds,
       Argument.notificationTitle: notificationTitle,
       Argument.notificationText: notificationText,
+      Argument.showNotification: showNotification,
     };
 
     return await methodChannel.invokeMethod<bool>(
             MethodName.pauseBlockApps, arguments) ??
         false;
   }
-  
+
   @override
   Future<Map<String, dynamic>> isBlockingPaused() async {
-    final result = await methodChannel.invokeMapMethod<String, dynamic>(
-        MethodName.isBlockingPaused);
-    return result ?? {
-      'isPaused': false,
-      'remainingPauseTime': 0,
-      'pausedPackages': <String>[],
-      'remainingBlockTime': 0
-    };
+    final result = await methodChannel
+        .invokeMapMethod<String, dynamic>(MethodName.isBlockingPaused);
+    return result ??
+        {
+          'isPaused': false,
+          'remainingPauseTime': 0,
+          'pausedPackages': <String>[],
+          'remainingBlockTime': 0
+        };
   }
 
   @override

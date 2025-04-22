@@ -11,6 +11,8 @@ object MethodName {
     const val getActiveSchedules = "getActiveSchedules"
     const val isOnBlockingApps = "isOnBlockingApps"
     const val unblockApps = "unblockApps"
+    const val pauseBlockApps = "pauseBlockApps"
+    const val isBlockingPaused = "isBlockingPaused"
     const val monitoringAppUsage = "monitoringAppUsage"
     const val configureAppMonitoringService = "configureAppMonitoringService"
 }

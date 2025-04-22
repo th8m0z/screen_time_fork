@@ -52,6 +52,13 @@ xmlns:tools="http://schemas.android.com/tools"
         android:exported="false"
         android:enabled="true"
         android:foregroundServiceType="specialUse" />
+        
+    <!-- Pause Notification Service -->
+    <service
+        android:name=".service.PauseNotificationService"
+        android:exported="false"
+        android:enabled="true"
+        android:foregroundServiceType="specialUse" />
 
     <!-- Alarm Receiver -->
     <receiver 

@@ -250,6 +250,32 @@ class ScreenTimePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
         )
         result.success(data)
       }
+      MethodName.pauseBlockApps -> {
+        val args = call.arguments as Map<String, Any?>
+        val pauseDurationInMillisecond = args[Argument.pauseDuration] as Int
+        val pauseDuration = Duration.ofMillis(pauseDurationInMillisecond.toLong())
+        val notificationTitle = args[Argument.notificationTitle] as String?
+        val notificationText = args[Argument.notificationText] as String?
+        val showNotification = args[Argument.showNotification] as Boolean? ?: true
+
+        val response = ScreenTimeMethod.pauseBlockApps(
+          context,
+          pauseDuration,
+          sharedPreferences,
+          notificationTitle,
+          notificationText,
+          showNotification
+        )
+
+        result.success(response)
+      }
+      MethodName.isBlockingPaused -> {
+        val response = ScreenTimeMethod.isBlockingPaused(
+          context,
+          sharedPreferences
+        )
+        result.success(response)
+      }
       else -> result.notImplemented()
     }
   }

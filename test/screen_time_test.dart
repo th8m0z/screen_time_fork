@@ -105,6 +105,26 @@ class MockScreenTimePlatform
       List<int> daysOfWeek = const []}) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<bool> pauseBlockApps({
+    required Duration pauseDuration,
+    String? notificationTitle,
+    String? notificationText,
+    bool showNotification = true,
+  }) async {
+    return true;
+  }
+
+  @override
+  Future<Map<String, dynamic>> isBlockingPaused() async {
+    return {
+      'isPaused': false,
+      'remainingPauseTime': 0,
+      'pausedPackages': <String>[],
+      'remainingBlockTime': 0
+    };
+  }
 }
 
 void main() {

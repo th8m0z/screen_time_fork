@@ -87,6 +87,20 @@ abstract class ScreenTimePlatform extends PlatformInterface {
   }) =>
       throw UnimplementedError('unblockApps() has not been implemented.');
 
+  /// Temporarily pause blocking apps for a specified duration
+  /// After the pause duration expires, blocking will automatically resume
+  Future<bool> pauseBlockApps({
+    required Duration pauseDuration,
+    String? notificationTitle,
+    String? notificationText,
+    bool showNotification = true,
+  }) =>
+      throw UnimplementedError('pauseBlockApps() has not been implemented.');
+
+  /// Check if app blocking is currently paused
+  Future<Map<String, dynamic>> isBlockingPaused() =>
+      throw UnimplementedError('isBlockingPaused() has not been implemented.');
+
   Future<bool?> scheduleBlock({
     required String scheduleId,
     required List<String> packagesName,

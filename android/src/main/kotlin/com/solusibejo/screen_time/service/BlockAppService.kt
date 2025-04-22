@@ -38,6 +38,7 @@ class BlockAppService : Service() {
     private var blockEndTime: Long = 0
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
+    private var isResuming = false
     
     companion object {
         const val CHANNEL_ID = "BlockAppService_Channel_ID"
@@ -91,6 +92,14 @@ class BlockAppService : Service() {
         
         serviceScope.launch {
             try {
+                // If we're resuming, the immediatelyRefetchForegroundApp method has already been called
+                // from onStartCommand, so we don't need another delay here.
+                // Just log that we're continuing with normal checks
+                if (isResuming) {
+                    Log.d(TAG, "Continuing with normal app checks after resume")
+                    // Don't reset isResuming flag here, it will be reset by immediatelyRefetchForegroundApp
+                }
+                
                 while (isActive && System.currentTimeMillis() < blockEndTime) {
                     checkAndBlockApp()
                     delay(CHECK_INTERVAL)
@@ -118,6 +127,10 @@ class BlockAppService : Service() {
         }
     }
 
+    // Track the last confirmed foreground app to help with detection reliability
+    private var lastConfirmedForegroundApp: String? = null
+    private var lastForegroundAppTimestamp: Long = 0
+    
     private suspend fun checkAndBlockApp() = withContext(Dispatchers.Default) {
         if (!Settings.canDrawOverlays(this@BlockAppService) || 
             !hasUsageStatsPermission(this@BlockAppService)) {
@@ -127,14 +140,35 @@ class BlockAppService : Service() {
         }
 
         val foregroundApp = getForegroundApp()
+        val currentTime = System.currentTimeMillis()
         Log.d(TAG, "Current foreground app: $foregroundApp")
         
+        // Update our tracking of confirmed foreground apps
+        if (foregroundApp != null) {
+            // If this is from the primary detection method or a very recent app,
+            // consider it confirmed and update our tracking
+            lastConfirmedForegroundApp = foregroundApp
+            lastForegroundAppTimestamp = currentTime
+        }
+        
         withContext(Dispatchers.Main) {
+            // If we have a foreground app and it's blocked, show the overlay
             if (foregroundApp != null && 
                 blockedPackages.contains(foregroundApp) && 
                 !isDeviceLocked(this@BlockAppService)) {
-                Log.d(TAG, "Showing overlay for blocked app: $foregroundApp")
-                showOverlay()
+                
+                // Double-check if this is a recently confirmed app before showing overlay
+                val timeSinceConfirmation = currentTime - lastForegroundAppTimestamp
+                val isRecentlyConfirmed = timeSinceConfirmation < 30000 // 30 seconds
+                
+                if (isRecentlyConfirmed) {
+                    Log.d(TAG, "Showing overlay for blocked app: $foregroundApp")
+                    showOverlay()
+                } else {
+                    Log.d(TAG, "Not showing overlay for $foregroundApp - not recently confirmed")
+                    // We need to hide the overlay if it's currently shown
+                    hideOverlay()
+                }
             } else {
                 // Only hide if we're not blocking the current app
                 if (foregroundApp != null && !blockedPackages.contains(foregroundApp)) {
@@ -144,9 +178,17 @@ class BlockAppService : Service() {
                     Log.d(TAG, "Hiding overlay, device is locked")
                     hideOverlay()
                 } else if (foregroundApp == null) {
-                    // If we can't detect the foreground app, don't change the overlay state
-                    // This prevents the overlay from disappearing when app detection fails temporarily
-                    Log.d(TAG, "Could not detect foreground app, maintaining current overlay state")
+                    // If we can't detect the foreground app, check how long it's been since we had a confirmed app
+                    val timeSinceLastConfirmed = currentTime - lastForegroundAppTimestamp
+                    
+                    if (timeSinceLastConfirmed > 60000) { // 1 minute
+                        // If it's been a while since we had a confirmed foreground app, hide the overlay
+                        Log.d(TAG, "No foreground app detected for over a minute, hiding overlay")
+                        hideOverlay()
+                    } else {
+                        // Otherwise maintain current state as before
+                        Log.d(TAG, "Could not detect foreground app, maintaining current overlay state")
+                    }
                 }
             }
         }
@@ -156,34 +198,76 @@ class BlockAppService : Service() {
         try {
             val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val endTime = System.currentTimeMillis()
-            // Increase the time window to improve detection reliability
-            val beginTime = endTime - 1000 * 30 // Last 30 seconds
+            
+            // Use a longer time window when the service is resuming from a pause
+            // This helps to get more accurate data after a pause
+            val timeWindow = if (isResuming) {
+                1000 * 60 * 2 // 2 minutes if resuming
+            } else {
+                1000 * 30 // 30 seconds normally
+            }
+            val beginTime = endTime - timeWindow
+            
+            Log.d(TAG, "Querying usage stats with time window: ${timeWindow/1000} seconds, isResuming: $isResuming")
 
             // First try to get events
             val usageEvents = usageStatsManager.queryEvents(beginTime, endTime)
             var lastForegroundEvent: UsageEvents.Event? = null
+            var eventCount = 0
 
             while (usageEvents.hasNextEvent()) {
                 val event = UsageEvents.Event()
                 usageEvents.getNextEvent(event)
+                eventCount++
+                
+                // Log events if we're resuming to help with debugging
+                if (isResuming && event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                    Log.d(TAG, "Found foreground event: ${event.packageName}, time: ${event.timeStamp}")
+                }
+                
                 if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
                     lastForegroundEvent = event
                 }
             }
+            
+            Log.d(TAG, "Processed $eventCount usage events")
 
             // If we found a foreground event, return its package name
             if (lastForegroundEvent != null) {
+                Log.d(TAG, "Using primary detection method, found: ${lastForegroundEvent.packageName}")
                 return@withContext lastForegroundEvent.packageName
             }
             
-            // Fallback: If no events found, try to get usage stats
+            // Fallback: If no events found, try to get usage stats with more careful filtering
             val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, beginTime, endTime)
             if (stats.isNotEmpty()) {
-                // Sort by last time used
-                val mostRecentApp = stats.maxByOrNull { it.lastTimeUsed }
-                if (mostRecentApp != null) {
-                    Log.d(TAG, "Using fallback detection method, found: ${mostRecentApp.packageName}")
-                    return@withContext mostRecentApp.packageName
+                // Get the current time for freshness check
+                val currentTime = System.currentTimeMillis()
+                
+                // Filter stats to only include apps that have been used very recently
+                // This helps avoid detecting apps that were used a while ago but aren't currently in foreground
+                val recentlyUsedApps = stats.filter { stat -> 
+                    // Only consider apps used in the last 10 seconds
+                    val timeSinceLastUse = currentTime - stat.lastTimeUsed
+                    val isRecent = timeSinceLastUse < 10000 // 10 seconds
+                    
+                    // Log this for debugging
+                    if (blockedPackages.contains(stat.packageName)) {
+                        Log.d(TAG, "App ${stat.packageName} last used ${timeSinceLastUse}ms ago, isRecent: $isRecent")
+                    }
+                    
+                    isRecent
+                }
+                
+                // If we have recently used apps, find the most recent one
+                if (recentlyUsedApps.isNotEmpty()) {
+                    val mostRecentApp = recentlyUsedApps.maxByOrNull { it.lastTimeUsed }
+                    if (mostRecentApp != null) {
+                        Log.d(TAG, "Using improved fallback detection method, found: ${mostRecentApp.packageName}")
+                        return@withContext mostRecentApp.packageName
+                    }
+                } else {
+                    Log.d(TAG, "No recently used apps found in fallback detection")
                 }
             }
             
@@ -479,10 +563,61 @@ class BlockAppService : Service() {
         return null
     }
 
+    /**
+     * Immediately fetches the current foreground app after resuming from a pause
+     * This ensures we have the most up-to-date information about the foreground app
+     */
+    private fun immediatelyRefetchForegroundApp() {
+        Log.d(TAG, "Immediately refetching current foreground app after resume")
+        
+        // Set the resuming flag to true for the getForegroundApp method
+        isResuming = true
+        
+        // Launch a coroutine to fetch the foreground app immediately
+        serviceScope.launch {
+            try {
+                // Fetch the current foreground app
+                val currentForegroundApp = getForegroundApp()
+                Log.d(TAG, "After resume, current foreground app is: $currentForegroundApp")
+                
+                // Check if we need to show or hide the overlay based on the current foreground app
+                if (currentForegroundApp != null && 
+                    blockedPackages.contains(currentForegroundApp) && 
+                    !isDeviceLocked(this@BlockAppService)) {
+                    Log.d(TAG, "Showing overlay for blocked app after resume: $currentForegroundApp")
+                    withContext(Dispatchers.Main) {
+                        showOverlay()
+                    }
+                } else {
+                    Log.d(TAG, "Hiding overlay after resume, current app not blocked or null")
+                    withContext(Dispatchers.Main) {
+                        hideOverlay()
+                    }
+                }
+                
+                // Reset the resuming flag after we've done the immediate check
+                isResuming = false
+            } catch (e: Exception) {
+                Log.e(TAG, "Error refetching foreground app after resume", e)
+                isResuming = false
+            }
+        }
+    }
+    
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand called with action: ${intent?.action}")
         
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        
+        // Check if we're resuming from a pause
+        val isResumingFromPause = intent?.getBooleanExtra("is_resuming", false) ?: false
+        if (isResumingFromPause) {
+            Log.d(TAG, "Service is resuming from pause, will immediately refetch foreground app")
+            // Set the resuming flag to true for the getForegroundApp method
+            isResuming = true
+            // Schedule an immediate refetch of the foreground app
+            immediatelyRefetchForegroundApp()
+        }
         
         // Load shared preferences first to ensure we have the latest state
         val sharedPreferences = getSharedPreferences(ScreenTimePlugin.PREF_NAME, Context.MODE_PRIVATE)

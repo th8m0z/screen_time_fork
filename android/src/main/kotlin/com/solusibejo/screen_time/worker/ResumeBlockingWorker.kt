@@ -99,6 +99,12 @@ class ResumeBlockingWorker(
                 // Pass notification customization parameters
                 putExtra(Argument.notificationTitle, notificationTitle)
                 putExtra(Argument.notificationText, notificationText)
+                
+                // Set flag to indicate this is a resuming service
+                // This will trigger special handling in the service
+                putExtra("is_resuming", true)
+                
+                Log.d(TAG, "Setting is_resuming flag to true for accurate foreground app detection")
             }
             
             try {

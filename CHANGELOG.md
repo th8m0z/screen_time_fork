@@ -1,3 +1,8 @@
+## 0.9.0 - April 22, 2025
+* Implement Pause Blocking App
+* Handle auto resume after paused
+* Improve handle overlay
+
 ## 0.8.0 - April 18, 2025
 * Configurable overlay UI
 * Configurable notification title

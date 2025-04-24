@@ -98,7 +98,7 @@ abstract class ScreenTimePlatform extends PlatformInterface {
       throw UnimplementedError('pauseBlockApps() has not been implemented.');
 
   /// Check if app blocking is currently paused
-  Future<Map<String, dynamic>> isBlockingPaused() =>
+  Future<bool> isBlockingPaused() =>
       throw UnimplementedError('isBlockingPaused() has not been implemented.');
 
   Future<bool?> scheduleBlock({

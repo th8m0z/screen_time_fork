@@ -1,3 +1,6 @@
+## 0.9.1 - April 24, 2025
+* Fix Pause Blocking App response from map to boolean
+
 ## 0.9.0 - April 22, 2025
 * Implement Pause Blocking App
 * Handle auto resume after paused

@@ -766,7 +766,7 @@ object ScreenTimeMethod {
     fun isBlockingPaused(
         context: Context,
         sharedPreferences: SharedPreferences
-    ): Map<String, Any> {
+    ): Boolean {
         try {
             // First check if we're in a paused state
             val isPaused = sharedPreferences.getBoolean("is_paused", false)
@@ -777,12 +777,7 @@ object ScreenTimeMethod {
             
             // If we're not paused or if the service is running and blocking is active, we're not in a paused state
             if (!isPaused || (isServiceRunning && isBlocking)) {
-                return mapOf(
-                    "isPaused" to false,
-                    "remainingPauseTime" to 0L,
-                    "pausedPackages" to emptyList<String>(),
-                    "remainingBlockTime" to 0L
-                )
+                return false
             }
             
             // Get pause end time and calculate remaining pause time
@@ -800,32 +795,17 @@ object ScreenTimeMethod {
                     apply()
                 }
                 
-                return mapOf(
-                    "isPaused" to false,
-                    "remainingPauseTime" to 0L,
-                    "pausedPackages" to emptyList<String>(),
-                    "remainingBlockTime" to 0L
-                )
+                return false
             }
             
             // Get paused packages and remaining block time
             val pausedPackages = sharedPreferences.getStringSet("paused_blocked_packages", setOf()) ?: setOf()
             val remainingBlockTime = sharedPreferences.getLong("paused_remaining_time", 0)
             
-            return mapOf(
-                "isPaused" to true,
-                "remainingPauseTime" to remainingPauseTime,
-                "pausedPackages" to pausedPackages.toList(),
-                "remainingBlockTime" to remainingBlockTime
-            )
+            return true
         } catch (e: Exception) {
             Log.e("ScreenTimeMethod", "Error checking pause state", e)
-            return mapOf(
-                "isPaused" to false,
-                "remainingPauseTime" to 0L,
-                "pausedPackages" to emptyList<String>(),
-                "remainingBlockTime" to 0L
-            )
+            return false
         }
     }
 

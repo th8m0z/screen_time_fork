@@ -201,16 +201,10 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
   }
 
   @override
-  Future<Map<String, dynamic>> isBlockingPaused() async {
-    final result = await methodChannel
-        .invokeMapMethod<String, dynamic>(MethodName.isBlockingPaused);
-    return result ??
-        {
-          'isPaused': false,
-          'remainingPauseTime': 0,
-          'pausedPackages': <String>[],
-          'remainingBlockTime': 0
-        };
+  Future<bool> get isOnPausedBlockingApps async {
+    final result =
+        await methodChannel.invokeMethod<bool>(MethodName.isBlockingPaused);
+    return result ?? false;
   }
 
   @override

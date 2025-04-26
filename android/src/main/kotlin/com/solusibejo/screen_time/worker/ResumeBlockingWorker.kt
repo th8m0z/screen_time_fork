@@ -26,6 +26,7 @@ class ResumeBlockingWorker(
 
     companion object {
         private const val TAG = "ResumeBlockingWorker"
+        const val NAME = "resume_blocking_work"
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {

@@ -138,8 +138,8 @@ class ScreenTime {
   /// - `remainingPauseTime`: Duration in milliseconds until blocking resumes (if paused)
   /// - `pausedPackages`: List of package names that will be blocked when pause ends
   /// - `remainingBlockTime`: Duration in milliseconds of blocking that will resume after pause
-  Future<Map<String, dynamic>> isBlockingPaused() async {
-    return await ScreenTimePlatform.instance.isBlockingPaused();
+  Future<bool> get isOnPausedBlockingApps async {
+    return await ScreenTimePlatform.instance.isOnPausedBlockingApps;
   }
 
   Future<bool?> scheduleBlock({

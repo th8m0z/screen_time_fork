@@ -614,22 +614,57 @@ object ScreenTimeMethod {
         packagesName: List<String>,
         sharedPreferences: SharedPreferences,
     ): Boolean {
-        // Cancel scheduled unblock
-        AlarmReceiver.cancelUnblock(context)
-
-        // Clear block state
-        sharedPreferences.edit().apply {
-            putBoolean(BlockAppService.KEY_IS_BLOCKING, false)
-            putStringSet(BlockAppService.KEY_BLOCKED_PACKAGES, setOf())
-            putLong(BlockAppService.KEY_BLOCK_END_TIME, 0)
-            apply()
+        try {
+            // Cancel scheduled unblock
+            AlarmReceiver.cancelUnblock(context)
+            
+            // Check if there's a paused block and handle it using the isBlockingPaused method
+            val isPaused = isBlockingPaused(context, sharedPreferences)
+            
+            if (isPaused) {
+                Log.d("ScreenTimeMethod", "Unblocking a paused block")
+                
+                // Cancel the unique work for resuming blocking
+                val workManager = WorkManager.getInstance(context)
+                // Use the same unique work name that was used in pauseBlockApps
+                workManager.cancelUniqueWork(ResumeBlockingWorker.NAME)
+                
+                // Stop the PauseNotificationService if it's running
+                try {
+                    val pauseServiceIntent = Intent(context, PauseNotificationService::class.java)
+                    context.stopService(pauseServiceIntent)
+                } catch (e: Exception) {
+                    Log.e("ScreenTimeMethod", "Error stopping PauseNotificationService", e)
+                    // Continue even if stopping the service fails
+                }
+                
+                // Clear all pause-related SharedPreferences
+                sharedPreferences.edit().apply {
+                    remove("is_paused")
+                    remove("paused_blocked_packages")
+                    remove("paused_remaining_time")
+                    remove("pause_end_time")
+                    apply()
+                }
+            }
+            
+            // Clear block state
+            sharedPreferences.edit().apply {
+                putBoolean(BlockAppService.KEY_IS_BLOCKING, false)
+                putStringSet(BlockAppService.KEY_BLOCKED_PACKAGES, setOf())
+                putLong(BlockAppService.KEY_BLOCK_END_TIME, 0)
+                apply()
+            }
+            
+            // Stop service
+            val intent = Intent(context, BlockAppService::class.java)
+            context.stopService(intent)
+            
+            return true
+        } catch (e: Exception) {
+            Log.e("ScreenTimeMethod", "Error in unblockApps", e)
+            return false
         }
-
-        // Stop service
-        val intent = Intent(context, BlockAppService::class.java)
-        context.stopService(intent)
-
-        return true
     }
 
     /**
@@ -742,7 +777,13 @@ object ScreenTimeMethod {
                 )
                 .build()
 
-            workManager.enqueue(resumeBlockingRequest)
+            // Use a consistent unique work name for the resume blocking worker
+            // This makes it easier to cancel later if needed
+            workManager.enqueueUniqueWork(
+                ResumeBlockingWorker.NAME, // Unique work name
+                androidx.work.ExistingWorkPolicy.REPLACE,
+                resumeBlockingRequest
+            )
             Log.d("ScreenTimeMethod", "Paused blocking for ${pauseDuration.inString()}, will resume after pause")
 
             return true
@@ -757,16 +798,12 @@ object ScreenTimeMethod {
      *
      * @param context The application context
      * @param sharedPreferences SharedPreferences instance to check the pause state
-     * @return Map containing status and pause information
-     *         - isPaused: Boolean indicating if blocking is currently paused
-     *         - remainingPauseTime: Long representing milliseconds until blocking resumes (if paused)
-     *         - pausedPackages: List of package names that will be blocked when pause ends
-     *         - remainingBlockTime: Long representing milliseconds of blocking that will resume after pause
+     * @return Boolean indicating if blocking is currently paused
      */
     fun isBlockingPaused(
         context: Context,
         sharedPreferences: SharedPreferences
-    ): Map<String, Any> {
+    ): Boolean {
         try {
             // First check if we're in a paused state
             val isPaused = sharedPreferences.getBoolean("is_paused", false)
@@ -777,12 +814,7 @@ object ScreenTimeMethod {
             
             // If we're not paused or if the service is running and blocking is active, we're not in a paused state
             if (!isPaused || (isServiceRunning && isBlocking)) {
-                return mapOf(
-                    "isPaused" to false,
-                    "remainingPauseTime" to 0L,
-                    "pausedPackages" to emptyList<String>(),
-                    "remainingBlockTime" to 0L
-                )
+                return false
             }
             
             // Get pause end time and calculate remaining pause time
@@ -800,32 +832,17 @@ object ScreenTimeMethod {
                     apply()
                 }
                 
-                return mapOf(
-                    "isPaused" to false,
-                    "remainingPauseTime" to 0L,
-                    "pausedPackages" to emptyList<String>(),
-                    "remainingBlockTime" to 0L
-                )
+                return false
             }
             
             // Get paused packages and remaining block time
             val pausedPackages = sharedPreferences.getStringSet("paused_blocked_packages", setOf()) ?: setOf()
             val remainingBlockTime = sharedPreferences.getLong("paused_remaining_time", 0)
             
-            return mapOf(
-                "isPaused" to true,
-                "remainingPauseTime" to remainingPauseTime,
-                "pausedPackages" to pausedPackages.toList(),
-                "remainingBlockTime" to remainingBlockTime
-            )
+            return true
         } catch (e: Exception) {
             Log.e("ScreenTimeMethod", "Error checking pause state", e)
-            return mapOf(
-                "isPaused" to false,
-                "remainingPauseTime" to 0L,
-                "pausedPackages" to emptyList<String>(),
-                "remainingBlockTime" to 0L
-            )
+            return false
         }
     }
 

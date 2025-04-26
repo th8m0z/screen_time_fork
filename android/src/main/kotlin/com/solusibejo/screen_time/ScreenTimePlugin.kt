@@ -24,8 +24,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Duration
-import java.time.Instant
-import java.time.ZoneId
 import java.util.Locale
 
 /** ScreenTimePlugin */

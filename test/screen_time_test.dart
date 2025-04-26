@@ -117,13 +117,8 @@ class MockScreenTimePlatform
   }
 
   @override
-  Future<Map<String, dynamic>> isBlockingPaused() async {
-    return {
-      'isPaused': false,
-      'remainingPauseTime': 0,
-      'pausedPackages': <String>[],
-      'remainingBlockTime': 0
-    };
+  Future<bool> get isOnPausedBlockingApps async {
+    return false;
   }
 }
 

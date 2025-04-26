@@ -201,7 +201,7 @@ class MethodChannelScreenTime extends ScreenTimePlatform {
   }
 
   @override
-  Future<bool> isBlockingPaused() async {
+  Future<bool> get isOnPausedBlockingApps async {
     final result =
         await methodChannel.invokeMethod<bool>(MethodName.isBlockingPaused);
     return result ?? false;

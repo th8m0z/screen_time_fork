@@ -1,5 +1,7 @@
 ## 0.9.1 - April 24, 2025
 * Fix Pause Blocking App response from map to boolean
+* Add checker is on paused blocking or not
+* Fix Cancel All Paused Blocking App when unblock
 
 ## 0.9.0 - April 22, 2025
 * Implement Pause Blocking App

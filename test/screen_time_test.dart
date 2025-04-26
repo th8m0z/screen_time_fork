@@ -117,7 +117,7 @@ class MockScreenTimePlatform
   }
 
   @override
-  Future<bool> isBlockingPaused() async {
+  Future<bool> get isOnPausedBlockingApps async {
     return false;
   }
 }

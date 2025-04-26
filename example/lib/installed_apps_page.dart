@@ -72,6 +72,7 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
     );
 
     final isOnBlocking = await _screenTime.isOnBlockingApps;
+    final isOnPaused = await _screenTime.isOnPausedBlockingApps;
 
     if (!ctx.mounted) return;
     showModalBottomSheet(
@@ -161,10 +162,13 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                           ScreenTimePermissionStatus.approved &&
                       notificationPermission ==
                           ScreenTimePermissionStatus.approved) {
-                    if (isOnBlocking) {
+                    if (isOnBlocking || isOnPaused) {
                       // Show options when blocking is active: Stop or Pause
                       if (!modalCtx.mounted) return;
-                      final action = await _showBlockingOptionsDialog(modalCtx);
+                      final action = await _showBlockingOptionsDialog(
+                        context: modalCtx,
+                        isOnPaused: isOnPaused,
+                      );
 
                       if (action == BlockingAction.stop) {
                         await _screenTime.unblockApps();
@@ -390,9 +394,10 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
   }
 
   /// Shows a dialog with options for managing active app blocking
-  Future<BlockingAction?> _showBlockingOptionsDialog(
-    BuildContext context,
-  ) async {
+  Future<BlockingAction?> _showBlockingOptionsDialog({
+    required BuildContext context,
+    bool isOnPaused = false,
+  }) async {
     return showDialog<BlockingAction>(
       context: context,
       builder: (BuildContext context) {
@@ -411,11 +416,14 @@ class _InstalledAppsPageState extends State<InstalledAppsPage>
                 Navigator.of(context).pop(BlockingAction.cancel);
               },
             ),
-            TextButton(
-              child: Text('Pause Blocking'),
-              onPressed: () {
-                Navigator.of(context).pop(BlockingAction.pause);
-              },
+            Visibility(
+              visible: !isOnPaused,
+              child: TextButton(
+                child: Text('Pause Blocking'),
+                onPressed: () {
+                  Navigator.of(context).pop(BlockingAction.pause);
+                },
+              ),
             ),
             TextButton(
               child: Text('Stop Blocking'),

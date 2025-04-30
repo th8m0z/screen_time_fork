@@ -21,6 +21,13 @@ class ScreenTimeMethod {
                     print("Request Permission Failed: \(error.localizedDescription)")
                     return false
                 }
+            case ScreenTimePermissionType.notification:
+                do {
+                    try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+                    return true
+                } catch {
+                    return false
+                }
             default:
                 return true
         }
@@ -33,6 +40,21 @@ class ScreenTimeMethod {
                 let statusEnum = status == .approved ? ScreenTimePermissionStatus.approved :
                     status == .denied ? ScreenTimePermissionStatus.denied : ScreenTimePermissionStatus.notDetermined
                 return statusEnum
+            case ScreenTimePermissionType.notification:
+                return await withCheckedContinuation { continuation in
+                    UNUserNotificationCenter.current().getNotificationSettings { settings in
+                        let status: ScreenTimePermissionStatus
+                        switch settings.authorizationStatus {
+                            case .authorized:
+                                status = .approved
+                            case .denied:
+                                status = .denied
+                            default:
+                                status = .notDetermined
+                        }
+                        continuation.resume(returning: status)
+                    }
+                }
             default:
                 return ScreenTimePermissionStatus.approved
         }

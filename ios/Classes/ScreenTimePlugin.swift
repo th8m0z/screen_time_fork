@@ -10,10 +10,36 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
-    case "getPlatformVersion":
-      result("iOS " + UIDevice.current.systemVersion)
-    default:
-      result(FlutterMethodNotImplemented)
+        case MethodName.requestPermission:
+            let args = call.arguments as! [String : Any]
+            let permissionTypeInString = args[Argument.permissionType] as! String
+            
+            let permissionType = ScreenTimePermissionType(rawValue: permissionTypeInString)
+            if(permissionType == nil){
+                result(false)
+            }
+            else {
+                Task {
+                    let response = await ScreenTimeMethod.requestPermission(type: permissionType!)
+                    result(response)
+                }
+            }
+        case MethodName.permissionStatus:
+            let args = call.arguments as! [String : Any]
+            let permissionTypeInString = args[Argument.permissionType] as! String
+            
+            let permissionType = ScreenTimePermissionType(rawValue: permissionTypeInString)
+            if(permissionType == nil){
+                result(false)
+            }
+            else {
+                Task {
+                    let response = await ScreenTimeMethod.permissionStatus(type: permissionType!)
+                    result(String(describing: response))
+                }
+            }
+        default:
+          result(FlutterMethodNotImplemented)
     }
   }
 }

@@ -183,31 +183,130 @@ class _MainPageState extends State<MainPage> {
                       ),
                       const SizedBox(height: 8),
                       _buildMethodButton(
-                        'Fetch Installed Application',
-                        () async {
-                          showDialog(
+                        'Permission status',
+                        () => _executeMethod(() async {
+                          final result = await showModalBottomSheet(
                             context: context,
                             builder:
-                                (context) => const Center(
-                                  child: CircularProgressIndicator(),
+                                (context) => Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ListTile(
+                                      title: Text(
+                                        ScreenTimePermissionType.appUsage.name,
+                                      ),
+                                      trailing: Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        final ctx = context;
+                                        final permission = await _screenTime
+                                            .permissionStatus(
+                                              permissionType:
+                                                  ScreenTimePermissionType
+                                                      .appUsage,
+                                            );
+
+                                        if (!ctx.mounted) return;
+                                        Navigator.pop(ctx, permission);
+                                      },
+                                    ),
+                                    ListTile(
+                                      title: Text(
+                                        ScreenTimePermissionType
+                                            .accessibilitySettings
+                                            .name,
+                                      ),
+                                      trailing: Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        final ctx = context;
+                                        final permission = await _screenTime
+                                            .permissionStatus(
+                                              permissionType:
+                                                  ScreenTimePermissionType
+                                                      .accessibilitySettings,
+                                            );
+
+                                        if (!ctx.mounted) return;
+                                        Navigator.pop(ctx, permission);
+                                      },
+                                    ),
+                                    ListTile(
+                                      title: Text(
+                                        ScreenTimePermissionType
+                                            .drawOverlay
+                                            .name,
+                                      ),
+                                      trailing: Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        final ctx = context;
+                                        final permission = await _screenTime
+                                            .permissionStatus(
+                                              permissionType:
+                                                  ScreenTimePermissionType
+                                                      .drawOverlay,
+                                            );
+
+                                        if (!ctx.mounted) return;
+                                        Navigator.pop(ctx, permission);
+                                      },
+                                    ),
+                                    ListTile(
+                                      title: Text(
+                                        ScreenTimePermissionType
+                                            .notification
+                                            .name,
+                                      ),
+                                      trailing: Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        final ctx = context;
+                                        final permission = await _screenTime
+                                            .permissionStatus(
+                                              permissionType:
+                                                  ScreenTimePermissionType
+                                                      .notification,
+                                            );
+
+                                        if (!ctx.mounted) return;
+                                        Navigator.pop(ctx, permission);
+                                      },
+                                    ),
+                                  ],
                                 ),
                           );
 
-                          final ctx = context;
-                          final apps = await _screenTime.installedApps();
-
-                          if (!ctx.mounted) return;
-                          Navigator.pop(ctx);
-
-                          Navigator.push(
-                            ctx,
-                            MaterialPageRoute(
+                          if (result is ScreenTimePermissionStatus) {
+                            return jsonEncode({'status': result.name});
+                          }
+                        }),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: _buildMethodButton(
+                          'Fetch Installed Application',
+                          () async {
+                            showDialog(
+                              context: context,
                               builder:
-                                  (context) =>
-                                      InstalledAppsPage(installedApps: apps),
-                            ),
-                          );
-                        },
+                                  (context) => const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                            );
+
+                            final ctx = context;
+                            final apps = await _screenTime.installedApps();
+
+                            if (!ctx.mounted) return;
+                            Navigator.pop(ctx);
+
+                            Navigator.push(
+                              ctx,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        InstalledAppsPage(installedApps: apps),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),

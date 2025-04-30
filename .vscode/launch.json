@@ -28,6 +28,13 @@
             "type": "dart"
         },
         {
+            "name": "example (ios)",
+            "cwd": "example",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "00008101-0004186A02D2001E"
+        },
+        {
             "name": "example (profile mode)",
             "cwd": "example",
             "request": "launch",

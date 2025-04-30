@@ -1,3 +1,7 @@
+## 0.10.0 - May 1, 2025
+* Request Permission for iOS
+* Permission Status for iOS
+
 ## 0.9.1 - April 24, 2025
 * Fix Pause Blocking App response from map to boolean
 * Add checker is on paused blocking or not

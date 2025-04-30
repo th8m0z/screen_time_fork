@@ -1,3 +1,7 @@
+## 0.10.1 - May 1, 2025
+* Fix Request Permission notification for iOS
+* Fix Permission Status notification for iOS
+
 ## 0.10.0 - May 1, 2025
 * Request Permission for iOS
 * Permission Status for iOS

@@ -12,7 +12,9 @@ class ScreenTimeMethod {
         type: ScreenTimePermissionType = ScreenTimePermissionType.appUsage
     ) async -> Bool {
         switch type {
-            case ScreenTimePermissionType.appUsage:
+            case ScreenTimePermissionType.appUsage,
+                 ScreenTimePermissionType.accessibilitySettings,
+                 ScreenTimePermissionType.drawOverlay:
                 do {
                     try await AuthorizationCenter.shared.requestAuthorization(for: FamilyControlsMember.individual)
                     print("Request Permission Launched")
@@ -28,14 +30,14 @@ class ScreenTimeMethod {
                 } catch {
                     return false
                 }
-            default:
-                return true
         }
     }
     
     static func permissionStatus(type: ScreenTimePermissionType = ScreenTimePermissionType.appUsage) async -> ScreenTimePermissionStatus {
         switch type {
-            case ScreenTimePermissionType.appUsage:
+            case ScreenTimePermissionType.appUsage,
+                 ScreenTimePermissionType.accessibilitySettings,
+                 ScreenTimePermissionType.drawOverlay:
                 let status = AuthorizationCenter.shared.authorizationStatus
                 let statusEnum = status == .approved ? ScreenTimePermissionStatus.approved :
                     status == .denied ? ScreenTimePermissionStatus.denied : ScreenTimePermissionStatus.notDetermined
@@ -55,8 +57,6 @@ class ScreenTimeMethod {
                         continuation.resume(returning: status)
                     }
                 }
-            default:
-                return ScreenTimePermissionStatus.approved
         }
     }
 }

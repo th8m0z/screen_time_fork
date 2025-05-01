@@ -1,3 +1,7 @@
+## 0.10.2 - May 1, 2025
+* Handle same action when request permission app usage, accessibility settings, and draw overlay to request family controls
+* Handle same action when check permission app usage, accessibility settings, and draw overlay to check family controls
+
 ## 0.10.1 - May 1, 2025
 * Fix Request Permission notification for iOS
 * Fix Permission Status notification for iOS

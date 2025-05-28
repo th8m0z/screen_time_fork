@@ -30,28 +30,23 @@ class BaseAppUsage {
 }
 
 class AppUsage {
-  final String? appName;
   final String? packageName;
   final DateTime? lastTimeUsed;
   final DateTime? firstTime;
   final DateTime? lastTime;
   final Duration? usageTime;
-  final Uint8List? iconInBytes;
-  final AppCategory category;
+
 
   AppUsage({
-    this.appName,
+   
     this.packageName,
     this.lastTimeUsed,
     this.firstTime,
     this.lastTime,
     this.usageTime,
-    this.iconInBytes,
-    this.category = AppCategory.undefined,
   });
 
   factory AppUsage.fromJson(Map<String, dynamic> json) => AppUsage(
-        appName: json["appName"],
         packageName: json["packageName"],
         lastTimeUsed: (json["lastTimeUsed"] != null)
             ? DateTime.fromMillisecondsSinceEpoch(json["lastTimeUsed"]!)
@@ -65,23 +60,13 @@ class AppUsage {
         usageTime: (json["usageTime"] != null)
             ? Duration(milliseconds: json["usageTime"]!)
             : null,
-        iconInBytes: (json["appIcon"] != null)
-            ? base64Decode(json["appIcon"].replaceAll("\n", ""))
-            : null,
-        category: AppCategory.values.firstWhere(
-          (element) => element.name == json["category"],
-          orElse: () => AppCategory.undefined,
-        ),
       );
 
-  Map<String, dynamic> toJson() => {
-        "appName": appName,
+  Map<String, dynamic> toJson() => { 
         "packageName": packageName,
         "lastTimeUsed": lastTimeUsed?.toIso8601String(),
         "firstTime": firstTime?.toIso8601String(),
         "lastTime": lastTime?.toIso8601String(),
         "usageTime": (usageTime != null) ? usageTime!.inMilliseconds : null,
-        "appIcon": iconInBytes,
-        "category": category.name,
       };
 }

@@ -382,13 +382,9 @@ object ScreenTimeMethod {
             val usageMap = ArrayList<Map<String, Any>>()
 
             for (usageStat in stats) {
-                val packageName = usageStat.packageName
-                val appInfo = packageManager.getApplicationInfo(packageName, 0)
-                val appIcon = appIconAsBase64(packageManager, usageStat.packageName)
+                val packageName = usageStat.packageName         
 
                 val data = mutableMapOf(
-                    // The package name of the app.
-                    Field.appName to packageManager.getApplicationLabel(appInfo),
                     // The package name of the app.
                     Field.packageName to usageStat.packageName,
                     // The last recorded timestamp when the app was used.
@@ -396,9 +392,7 @@ object ScreenTimeMethod {
                     // The first recorded timestamp when the app was used.
                     Field.firstTime to usageStat.firstTimeStamp,
                     // The last recorded timestamp when the app was used.
-                    Field.lastTime to usageStat.lastTimeStamp,
-                    // The category of the app
-                    Field.category to ApplicationInfoUtil.category(appInfo.category)
+                    Field.lastTime to usageStat.lastTimeStamp,              
                 )
 
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
@@ -412,9 +406,6 @@ object ScreenTimeMethod {
                     data[Field.usageTime] = usageStat.totalTimeInForeground
                 }
 
-                if(appIcon != null){
-                    data[Field.appIcon] = appIcon
-                }
 
                 usageMap.add(data)
             }

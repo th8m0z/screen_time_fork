@@ -9,18 +9,6 @@ xmlns:tools="http://schemas.android.com/tools"
   
   <application>
 
-    <!-- Boot Receiver -->
-    <receiver 
-        android:name=".receiver.BootReceiver" 
-        android:exported="false"
-        android:enabled="true">
-      <intent-filter>
-        <action android:name="android.intent.action.BOOT_COMPLETED" />
-        <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-        <category android:name="android.intent.category.DEFAULT" />
-      </intent-filter>
-    </receiver>
-
     <!-- Block App Service -->
     <service 
         android:name=".service.BlockAppService"
